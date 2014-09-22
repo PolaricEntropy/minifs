@@ -19,8 +19,12 @@ public class Driver {
 
   public static void main(String[] args) {
     FileSystem fs = new MiniFs();
-    String fileResult = processCmdFile(fs, args[0]);
-    StdOut.println(fileResult);
+    
+    fs.mkdir("home/");
+    fs.mkdir("home/test");    
+    
+    //String fileResult = processCmdFile(fs, args[0]);
+    //StdOut.println(fileResult);
   }
 
   public static String processCmdFile(FileSystem fs, String path) {

@@ -6,13 +6,10 @@
 
 package se.kth.id1020.minifs;
 
-/**
- *
- */
 public class INodeFile extends INode {
 
-  public INodeFile(String name) {
-    super(name);
-  }
-  
+	public INodeFile(String name, INodeDirectory parent)
+	{
+		super(name, parent);
+	}
 }

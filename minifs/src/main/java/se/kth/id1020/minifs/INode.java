@@ -5,34 +5,40 @@
  */
 package se.kth.id1020.minifs;
 
-/**
- *
- */
 public abstract class INode {
+	
+	private String name;
+	private long accessTime;
+	private INodeDirectory parent;
 
-  private String name;
+	public INode(String name, INodeDirectory parent)
+	{
+		this.name = name;
+		this.accessTime = System.currentTimeMillis();
+		this.parent = parent;
+	}
 
-  private long accessTime;
+	public long getAccessTime()
+	{
+		return accessTime;
+	}
 
-  public INode(String name) {
-    this.name = name;
-    this.accessTime = System.currentTimeMillis();
-  }
+	public void setAccessTime(long accessTime)
+	{
+		this.accessTime = accessTime;
+	}
 
-  public long getAccessTime() {
-    return accessTime;
-  }
+	public String getName()
+	{
+		return name;
+	}
 
-  public void setAccessTime(long accessTime) {
-    this.accessTime = accessTime;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
+	public void setName(String name)
+	{
+		// TODO: Add logic for illegal characters, namely /.
+		// Also make sure somewhere that we don't create files and/or directories with the same
+		// name as something that already exists.
+		this.name = name;
+	}
 
 }
