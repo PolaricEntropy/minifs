@@ -36,7 +36,7 @@ public class MiniFs implements FileSystem {
 		if (dir != null)
 			dir.createDirectory(values[0]);
 		else
-			throw new IllegalArgumentException("The directory " + values[1] + " does not exist");
+			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
 	}
 
 	public void touch(String path) throws IllegalArgumentException
@@ -50,7 +50,7 @@ public class MiniFs implements FileSystem {
 		if (dir != null)
 			dir.createFile(values[0]);
 		else
-			throw new IllegalArgumentException("The directory " + values[1] + " does not exist");
+			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
 	}
 
   
@@ -79,7 +79,12 @@ public class MiniFs implements FileSystem {
 		//TODO: Sort. They are actually sorted by default, but if we sort by time first they are not any more.
 		
 		//Create a ref var for this for easy access.
-		TreeMap<String, INode> children = dir.getChildren();
+		TreeMap<String, INode> children;
+		
+		if (dir != null)
+			 children = dir.getChildren();
+		else
+			throw new IllegalArgumentException(String.format("The path %s does not exist", path));
 		
 		return listFiles(children);
 	}
@@ -106,6 +111,11 @@ public class MiniFs implements FileSystem {
 		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 	}
 	
+	/**
+	 * Builds a formatted string of the INodes in the supplied collection. INodes will be in the same order as in the supplied collection.
+	 * @param children TreeMap of INodes to build a string of.
+	 * @return Returns a formatted string of all the INodes in a collection.
+	 */
 	private String listFiles(TreeMap<String, INode> children)
 	{
 		StringBuilder sb = new StringBuilder();

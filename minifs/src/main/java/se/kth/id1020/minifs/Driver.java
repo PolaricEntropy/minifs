@@ -47,26 +47,48 @@ public class Driver {
   
   public static String processCmd(FileSystem fs, String line)
   {
-	  
 	  String[] comp = line.split(" ", 2);
 	  String cmd = comp[0].trim().toLowerCase();
 	  
 	  String result = "";
 	  
 	  try
-	  {
+	  {	  
 		  if (cmd.equals("mkdir")){
+			  if (comp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. First argument of mkdir can not be empty.");
+			  
 			  fs.mkdir(comp[1].trim());
 		  } else if (cmd.equals("touch")) {
+			  if (comp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. First argument of touch can not be empty.");
+			  
 			  fs.touch(comp[1].trim());
 		  } else if (cmd.equals("append")) {
+			  if (comp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. First argument of append can not be empty.");
+			  
 			  String[] subComp = comp[1].split(" ", 2);
+			  
+			  if (subComp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. Second argument of append can not be empty.");
+			  
 			  fs.append(subComp[0].trim(), subComp[1].trim());
 		  } else if (cmd.equals("ls")) {
-			  //TODO: Fix so path does not need to be supplied.
+			  
+			  if (comp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. First argument of ls can not be empty.");
+			  
 			  String[] subComp = comp[1].split(" ", 2);
 			  String param = subComp[0].trim().toLowerCase();
-			  String path = subComp[1].trim();
+			  String path;
+			  
+			  //If second argument is empty, send an empty path to the function.
+			  if (subComp.length <= 1)
+				  path = "";
+			  else
+				  path = subComp[1].trim();
+			  
 			  if (param.equals("-t")) {
 				  result = fs.lsByTime(path);
 			  } else if (param.equals("-s")) {
@@ -75,8 +97,14 @@ public class Driver {
 				  result = param + ": parameter not recognized for ls";
 			  }
 		  } else if (cmd.equals("du")) {
+			  if (comp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. First argument of du can not be empty.");
+			  
 			  result = fs.du(comp[1].trim());
 		  } else if (cmd.equals("cat")) {
+			  if (comp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. First argument of cat can not be empty.");
+			  
 			  result = fs.cat(comp[1].trim());
 		  } else if (cmd.equals("exit")) {
 			  bShouldExit = true;
