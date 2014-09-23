@@ -44,51 +44,53 @@ public class Driver {
     }
     return builder.toString();
   }
-
-  public static String processCmd(FileSystem fs, String line) {
+  
+  public static String processCmd(FileSystem fs, String line)
+  {
 	  
-    String[] comp = line.split(" ", 2);
-    String cmd = comp[0].trim().toLowerCase();
-    
-    String result = "";
-
-    try
-    {
-	    if (cmd.equals("mkdir")) {
-	      fs.mkdir(comp[1].trim());
-	    } else if (cmd.equals("touch")) {
-	      fs.touch(comp[1].trim());
-	    } else if (cmd.equals("append")) {
-	      String[] subComp = comp[1].split(" ", 2);
-	      fs.append(subComp[0].trim(), subComp[1].trim());
-	    } else if (cmd.equals("ls")) {
-	      String[] subComp = comp[1].split(" ", 2);
-	      String param = subComp[0].trim().toLowerCase();
-	      String path = subComp[1].trim();
-	      if (param.equals("-t")) {
-	        result = fs.lsByTime(path);
-	      } else if (param.equals("-s")) {
-	        result = fs.lsByName(path);
-	      } else {
-	        result = param + ": parameter not recognized for ls";
-	      }
-	    } else if (cmd.equals("du")) {
-	      result = fs.du(comp[1].trim());
-	    } else if (cmd.equals("cat")) {
-	      result = fs.cat(comp[1].trim());
-	    } else if (cmd.equals("exit")) {
-	    	  bShouldExit = true;
-	    } else {
-	      result = cmd + ": command not found";
-	    }
-    }
-    catch (IllegalArgumentException ex)
+	  String[] comp = line.split(" ", 2);
+	  String cmd = comp[0].trim().toLowerCase();
+	  
+	  String result = "";
+	  
+	  try
+	  {
+		  if (cmd.equals("mkdir")){
+			  fs.mkdir(comp[1].trim());
+		  } else if (cmd.equals("touch")) {
+			  fs.touch(comp[1].trim());
+		  } else if (cmd.equals("append")) {
+			  String[] subComp = comp[1].split(" ", 2);
+			  fs.append(subComp[0].trim(), subComp[1].trim());
+		  } else if (cmd.equals("ls")) {
+			  //TODO: Fix so path does not need to be supplied.
+			  String[] subComp = comp[1].split(" ", 2);
+			  String param = subComp[0].trim().toLowerCase();
+			  String path = subComp[1].trim();
+			  if (param.equals("-t")) {
+				  result = fs.lsByTime(path);
+			  } else if (param.equals("-s")) {
+				  result = fs.lsByName(path);
+			  } else {
+				  result = param + ": parameter not recognized for ls";
+			  }
+		  } else if (cmd.equals("du")) {
+			  result = fs.du(comp[1].trim());
+		  } else if (cmd.equals("cat")) {
+			  result = fs.cat(comp[1].trim());
+		  } else if (cmd.equals("exit")) {
+			  bShouldExit = true;
+		  } else {
+			  result = cmd + ": command not found";
+		  }
+	}
+	catch (IllegalArgumentException ex)
 	{
     	result = ex.getMessage();
     }
     
     
-    return result;
+	return result;
   }
   
 }

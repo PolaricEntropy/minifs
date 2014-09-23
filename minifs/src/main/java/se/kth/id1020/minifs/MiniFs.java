@@ -34,7 +34,6 @@ public class MiniFs implements FileSystem {
 			throw new IllegalArgumentException("The directory " + values[1] + " does not exist");
 	}
 
-  
 	public void touch(String path) throws IllegalArgumentException
 	{
 		String[] values = SeparatePath(path);
@@ -64,7 +63,18 @@ public class MiniFs implements FileSystem {
   
 	public String lsByName(String path)
 	{
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		//Find the directory in the path, so we can process it.
+		INodeDirectory dir;
+		
+		//If we have zero length we have no arguments and should work from the working directory.
+		if (path.length() == 0)
+			dir = workingDir;
+		else
+			dir = findDir(path);
+		
+		
+		
+		return null;
 	}
 
   
@@ -100,7 +110,7 @@ public class MiniFs implements FileSystem {
 		int index = path.lastIndexOf("/");
 		
 		//If the slash is the last character, if the path looks like "home/".
-		if (index == path.length()-1)
+		if (index == path.length()-1 && path.length() > 0)
 		{
 			//Remove the "/" and get the last "/" again.
 			path = path.substring(0, index);
@@ -146,6 +156,10 @@ public class MiniFs implements FileSystem {
 		//Search for each directory in the path.
 		for (int i = 0; i < dirTree.length; i++)
 		{
+			//If we have a empty array position then just skip that. This happens if a string begins with "/".
+			if (dirTree[i].isEmpty())
+				continue;
+			
 			//Search the children of the current directory.
 			INode result = cur.getChildren().get(dirTree[i]);
 		
