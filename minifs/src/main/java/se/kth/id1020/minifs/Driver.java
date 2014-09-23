@@ -6,7 +6,9 @@
 package se.kth.id1020.minifs;
 
 import edu.princeton.cs.introcs.In;
+import edu.princeton.cs.introcs.StdIn;
 import edu.princeton.cs.introcs.StdOut;
+
 import java.io.File;
 import java.io.Writer;
 
@@ -16,13 +18,14 @@ import java.io.Writer;
 public class Driver {
 
   static String NEW_LINE = System.getProperty("line.separator");
-
+  static boolean bShouldExit = false;
+  
   public static void main(String[] args) {
     FileSystem fs = new MiniFs();
     
-    fs.mkdir("home/");
-    fs.mkdir("home/test");    
-    
+    while (bShouldExit == false)
+    	StdOut.println(processCmd(fs, StdIn.readLine()));	
+
     //String fileResult = processCmdFile(fs, args[0]);
     //StdOut.println(fileResult);
   }
@@ -43,38 +46,49 @@ public class Driver {
   }
 
   public static String processCmd(FileSystem fs, String line) {
+	  
     String[] comp = line.split(" ", 2);
     String cmd = comp[0].trim().toLowerCase();
     
-    String result = null;
+    String result = "";
 
-    if (cmd.equals("mkdir")) {
-      fs.mkdir(comp[1].trim());
-    } else if (cmd.equals("touch")) {
-      fs.touch(comp[1].trim());
-    } else if (cmd.equals("append")) {
-      String[] subComp = comp[1].split(" ", 2);
-      fs.append(subComp[0].trim(), subComp[1].trim());
-    } else if (cmd.equals("ls")) {
-      String[] subComp = comp[1].split(" ", 2);
-      String param = subComp[0].trim().toLowerCase();
-      String path = subComp[1].trim();
-      if (param.equals("-t")) {
-        result = fs.lsByTime(path);
-      } else if (param.equals("-s")) {
-        result = fs.lsByName(path);
-      } else {
-        result = param + ": parameter not recognized for ls";
-      }
-    } else if (cmd.equals("du")) {
-      result = fs.du(comp[1].trim());
-    } else if (cmd.equals("cat")) {
-      result = fs.cat(comp[1].trim());
-    } else {
-      result = cmd + ": command not found";
+    try
+    {
+	    if (cmd.equals("mkdir")) {
+	      fs.mkdir(comp[1].trim());
+	    } else if (cmd.equals("touch")) {
+	      fs.touch(comp[1].trim());
+	    } else if (cmd.equals("append")) {
+	      String[] subComp = comp[1].split(" ", 2);
+	      fs.append(subComp[0].trim(), subComp[1].trim());
+	    } else if (cmd.equals("ls")) {
+	      String[] subComp = comp[1].split(" ", 2);
+	      String param = subComp[0].trim().toLowerCase();
+	      String path = subComp[1].trim();
+	      if (param.equals("-t")) {
+	        result = fs.lsByTime(path);
+	      } else if (param.equals("-s")) {
+	        result = fs.lsByName(path);
+	      } else {
+	        result = param + ": parameter not recognized for ls";
+	      }
+	    } else if (cmd.equals("du")) {
+	      result = fs.du(comp[1].trim());
+	    } else if (cmd.equals("cat")) {
+	      result = fs.cat(comp[1].trim());
+	    } else if (cmd.equals("exit")) {
+	    	  bShouldExit = true;
+	    } else {
+	      result = cmd + ": command not found";
+	    }
     }
-
+    catch (IllegalArgumentException ex)
+	{
+    	result = ex.getMessage();
+    }
+    
+    
     return result;
   }
-
+  
 }

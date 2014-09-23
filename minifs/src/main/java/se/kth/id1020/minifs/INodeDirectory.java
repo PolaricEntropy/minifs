@@ -9,7 +9,7 @@ import java.util.Hashtable;
 
 public class INodeDirectory extends INode {
 
-	//Use Hashtable since it enforces the use of unique keys.
+	//Use Hashtable since it enforces the use of unique keys and optimizes searching.
 	private Hashtable<String, INode> children;
 	
 	public INodeDirectory(String name, INodeDirectory parent)
@@ -23,23 +23,29 @@ public class INodeDirectory extends INode {
 		return children;
 	}
 	
-	public void createDirectory(String name)
+	public void createDirectory(String name) throws IllegalArgumentException
 	{
 		//Create a new directory.
 		INodeDirectory newdir = new INodeDirectory(name, this);
 		
 		//Make sure we don't have a child with this name before.
-		if (children.containsValue(name) == false)
+		if (children.containsKey(name) == false)
 			children.put(name, newdir);
-		
-		//TODO: throw an exception if we are trying to create a new directory with a name that exists.	
+		else
+			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
 	}
 	
 	public void createFile(String name)
 	{
+		//Create a new directory.
+		INodeFile newfile = new INodeFile(name, this);
+		
+		//Make sure we don't have a child with this name before.
+		if (children.containsKey(name) == false)
+			children.put(name, newfile);
+		else
+			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
 		
 	}
-	
-	
 	
 }

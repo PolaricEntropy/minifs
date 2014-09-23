@@ -35,10 +35,11 @@ public abstract class INode {
 
 	public void setName(String name)
 	{
-		// TODO: Add logic for illegal characters, namely /.
-		// Also make sure somewhere that we don't create files and/or directories with the same
-		// name as something that already exists.
-		this.name = name;
+		//Other functions calling this function should sanitize user supplied input, but just in case.
+		if (name.contains("/") == false)
+			this.name = name;
+		else
+			throw new IllegalArgumentException("The filename or directory name syntax is incorrect.");
 	}
 
 }

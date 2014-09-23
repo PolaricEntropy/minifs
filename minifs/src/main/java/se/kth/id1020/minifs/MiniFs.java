@@ -19,46 +19,34 @@ public class MiniFs implements FileSystem {
 		root = new INodeDirectory("/", null); //Null parent, since this is the root node.
 		workingDir = root;
 	}
-  
-	public void mkdir(String path)
+	
+	public void mkdir(String path) throws IllegalArgumentException
 	{	
-		String folderName = "", pathToFolder = "";
+		String[] values = SeparatePath(path);
 		
-		//Filter out stuff that doesn't contain "/" like "home".
-		if (path.contains("/"))
-		{
-			int index = path.lastIndexOf("/");
-			
-			//If the slash is not the last character, if the path doesn't look like "home/".
-			if (index != path.length()-1)
-			{
-				//Trim it and move on.
-				path = path.substring(0, index);
-				index = path.lastIndexOf("/");
-			}
-			
-				//Get the stuff after the last "/", the folder name.
-				//Also separate out the path to the folder from the argument.
-				folderName = path.substring(index + 1);
-				pathToFolder = path.substring(0, index);
-		}
-		else //We have a path that looks like this: "home" without slashes.
-			folderName = path;
-		
-		//Find the directory in the path, so we can add a directory to it.
-		INodeDirectory dir = findDir(pathToFolder);
+		//Find the directory in the path, so we can add a new directory to it.
+		INodeDirectory dir = findDir(values[1]);
 		
 		//We have a directory, so we found it.
 		if (dir != null)
-		{
-			dir.createDirectory(folderName);
-		}
+			dir.createDirectory(values[0]);
+		else
+			throw new IllegalArgumentException("The directory " + values[1] + " does not exist");
 	}
 
   
-	public void touch(String path)
+	public void touch(String path) throws IllegalArgumentException
 	{
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		String[] values = SeparatePath(path);
+		
+		//Find the directory in the path, so we can add a new file to it.
+		INodeDirectory dir = findDir(values[1]);
+		
+		//We have a directory, so we found it.
+		if (dir != null)
+			dir.createFile(values[0]);
+		else
+			throw new IllegalArgumentException("The directory " + values[1] + " does not exist");
 	}
 
   
@@ -96,6 +84,41 @@ public class MiniFs implements FileSystem {
 		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 	}
 	
+	public void cd(String cmd)
+	{
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+	
+	/**
+	 * Separates an input path into the nodeName and the path value.
+	 * @param path The input that needs to be separated.
+	 * @return Returns the nodeName and pathToFolder in a String[] array, in that order.
+	 */
+	private String[] SeparatePath(String path)
+	{	
+		//Get the index of the last "/", we get -1 if we have no "/".
+		int index = path.lastIndexOf("/");
+		
+		//If the slash is the last character, if the path looks like "home/".
+		if (index == path.length()-1)
+		{
+			//Remove the "/" and get the last "/" again.
+			path = path.substring(0, index);
+			index = path.lastIndexOf("/");
+		}
+		
+		//If we have a "/" in the string.
+		if (index != -1)
+		{
+			//Get the stuff after the last "/", the node name.
+			//Also separate out the path to the directory from the argument.			
+			return(new String[] {path.substring(index + 1), path.substring(0, index)});
+		}
+		else //We don't have a "/" in the string so we just have "home". The node name is the path.
+			return(new String[] {path, ""});
+		
+	}
+	
 	/**
 	 * Finds and returns the specified directory.
 	 * If the path is prefixed with "/" we search from the root directory, otherwise we are searching from the current directory.
@@ -105,14 +128,11 @@ public class MiniFs implements FileSystem {
 	 */
 	private INodeDirectory findDir(String path)
 	{
-		//If path doesn't end with a "/", then add one.
+		INodeDirectory cur;
+		
+		//If path doesn't end with a "/", then add one. This way we will have at least one "/".
 		if (path.contains("/") == false)
 			path += "/";
-		
-		//Split the input path into an array so we can process each directory individually.
-		String[] dirTree = path.split("/");
-		
-		INodeDirectory cur;
 		
 		//Start from root dir if path begins with "/" else we start from our working directory.
 		if (path.startsWith("/"))
@@ -120,28 +140,33 @@ public class MiniFs implements FileSystem {
 		else
 			cur = workingDir;
 		
-		//Search for each directory.
+		//Split the input path into an array so we can process each directory individually.
+		String[] dirTree = path.split("/");
+		
+		//Search for each directory in the path.
 		for (int i = 0; i < dirTree.length; i++)
 		{
-			//Search the children of the directory after our directory.
+			//Search the children of the current directory.
 			INode result = cur.getChildren().get(dirTree[i]);
 		
 			//If we didn't find anything we get a null result.
 			if (result != null)
-			{	
+			{				
 				//If it's a directory we'll update cur to search for the text thing.
-				if (result.getClass().getName() == "se.kth.id1020.minifs.INodeDirectory")
+				if (result.getClass().getName() == root.getClass().getName())
 					cur = (INodeDirectory)result;
 				else //We found a file, stop and return null.
 					return null;
 			}
-			else //Null result, we didn't find anything, return null.
+			else //Null result. We didn't find the directory in the current directory, return null.
 				return null;
 		}
 		
-		//We've found all the directories, it's time to return.
+		//We've found all the directories in the path, it's time to return.
 		return cur;
 		
 	}
 
+	
+	
 }
