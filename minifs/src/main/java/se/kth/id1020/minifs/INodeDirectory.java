@@ -5,20 +5,30 @@
  */
 package se.kth.id1020.minifs;
 
-import java.util.Hashtable;
+import java.util.TreeMap;
 
 public class INodeDirectory extends INode {
 
-	//Use Hashtable since it enforces the use of unique keys and optimizes searching.
-	private Hashtable<String, INode> children;
+	//Use TreeMap since it enforces the use of unique keys and optimizes searching, it's also sortable.
+	private TreeMap<String, INode> children;
 	
 	public INodeDirectory(String name, INodeDirectory parent)
 	{
 		super(name, parent);
-		children = new Hashtable<String, INode>();
+		children = new TreeMap<String, INode>();
+		
+		//Parent is null if root node or special dir.
+		if (parent != null)
+		{
+			//Add the special directories. They have no parents since they aren't real nodes.
+			//If they had parents infinite recursion would occur.
+			children.put(".", new INodeDirectory(".", null));
+			children.put("..", new INodeDirectory("..", null));
+		}
     }
-
-	public Hashtable<String, INode> getChildren()
+	
+	
+	public TreeMap<String, INode> getChildren()
 	{
 		return children;
 	}
@@ -33,6 +43,7 @@ public class INodeDirectory extends INode {
 			children.put(name, newdir);
 		else
 			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
+		
 	}
 	
 	public void createFile(String name)

@@ -6,6 +6,11 @@
 
 package se.kth.id1020.minifs;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TreeMap;
+
 /**
  *
  */
@@ -63,8 +68,7 @@ public class MiniFs implements FileSystem {
   
 	public String lsByName(String path)
 	{
-		//Find the directory in the path, so we can process it.
-		INodeDirectory dir;
+		INodeDirectory dir;	
 		
 		//If we have zero length we have no arguments and should work from the working directory.
 		if (path.length() == 0)
@@ -72,9 +76,12 @@ public class MiniFs implements FileSystem {
 		else
 			dir = findDir(path);
 		
+		//TODO: Sort. They are actually sorted by default, but if we sort by time first they are not any more.
 		
+		//Create a ref var for this for easy access.
+		TreeMap<String, INode> children = dir.getChildren();
 		
-		return null;
+		return listFiles(children);
 	}
 
   
@@ -97,6 +104,44 @@ public class MiniFs implements FileSystem {
 	public void cd(String cmd)
 	{
 		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	}
+	
+	private String listFiles(TreeMap<String, INode> children)
+	{
+		StringBuilder sb = new StringBuilder();
+		int files = 0, folders = 0;
+		
+		//TODO: Print "Directory of " and the the path.
+		
+		//Iterate over all INodes of this directory.
+		for(INode i : children.values())
+		{
+			//Format the date.
+			Date date = new Date(i.getAccessTime());
+			DateFormat formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss:SSS");
+			
+			sb.append(String.format("%s	", formatter.format(date)));
+			
+			//Check if its a dir.
+			if (i.getClass().getName() == root.getClass().getName())
+			{
+				sb.append("  <DIR>	");
+				folders++;
+			}
+			else
+			{
+				sb.append("	");
+				files++;
+			}
+			
+			sb.append(String.format("%s\n", i.getName()));
+		}
+		
+		
+		sb.append(String.format("		%s File(s)\n", files));
+		sb.append(String.format("		%s Dir(s)\n", folders));
+		
+		return sb.toString();
 	}
 	
 	/**
