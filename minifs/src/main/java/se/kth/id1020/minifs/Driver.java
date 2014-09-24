@@ -10,7 +10,6 @@ import edu.princeton.cs.introcs.StdIn;
 import edu.princeton.cs.introcs.StdOut;
 
 import java.io.File;
-import java.io.Writer;
 
 /**
  *
@@ -106,8 +105,13 @@ public class Driver {
 				  throw new IllegalArgumentException("Syntax error. First argument of cat can not be empty.");
 			  
 			  result = fs.cat(comp[1].trim());
-		  } else if (cmd.equals("exit")) {
+		  } else if (cmd.equals("pwd")) {
 			  result = fs.pwd();
+		  } else if (cmd.equals("cd")) {
+			  if (comp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. First argument of cd can not be empty.");
+			  
+			  fs.cd(comp[1].trim());
 		  } else if (cmd.equals("exit")) {
 			  bShouldExit = true;
 		  } else {

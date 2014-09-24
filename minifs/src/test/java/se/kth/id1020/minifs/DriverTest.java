@@ -40,6 +40,16 @@ public class DriverTest extends TestCase {
     public String cat(String path) {
       return "";
     }
+
+	public String pwd() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public void cd(String path) {
+		// TODO Auto-generated method stub
+		
+	}
     
   }
   

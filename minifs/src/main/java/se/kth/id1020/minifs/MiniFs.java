@@ -108,7 +108,10 @@ public class MiniFs implements FileSystem {
 	
 	public void cd(String path)
 	{
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		INodeDirectory dir = findDir(path);
+		
+		if (dir != null)
+			workingDir = dir;
 	}
 	
 	private String getPath(INodeDirectory dir)
@@ -214,17 +217,48 @@ public class MiniFs implements FileSystem {
 	 */
 	private INodeDirectory findDir(String path)
 	{
-		INodeDirectory cur;
+		INodeDirectory cur = workingDir;
 		
 		//If path doesn't end with a "/", then add one. This way we will have at least one "/".
 		if (path.contains("/") == false)
 			path += "/";
 		
-		//Start from root dir if path begins with "/" else we start from our working directory.
-		if (path.startsWith("/"))
-			cur = root;
-		else
-			cur = workingDir;
+		while (true)
+		{	
+			
+			if (path.startsWith("/"))
+			{
+				cur = root;
+				path = path.substring(1); //Trim away the "/".
+				break;
+			}
+			else if (path.startsWith("..")) //Start from working dirs parent.
+			{
+				cur = workingDir.getParent();
+				path = path.substring(3);
+				
+				//If we stepped beyond the root node, then go back and work from root.
+				if (cur == null)
+					cur = root;
+			}
+			else if (path.startsWith(".")) //Start from working dir.
+			{
+				cur = workingDir;
+				path = path.substring(2);
+			}
+			else if (path.isEmpty())
+			{
+				break;
+			}
+			else
+			{
+				cur = workingDir;
+				break;
+			}
+				
+			
+		}
+		
 		
 		//Split the input path into an array so we can process each directory individually.
 		String[] dirTree = path.split("/");
@@ -232,7 +266,7 @@ public class MiniFs implements FileSystem {
 		//Search for each directory in the path.
 		for (int i = 0; i < dirTree.length; i++)
 		{
-			//If we have a empty array position then just skip that. This happens if a string begins with "/".
+			//If we have a empty array position then just skip that. This happens if path is "" or "/", then split produces an array with an empty position.
 			if (dirTree[i].isEmpty())
 				continue;
 			
