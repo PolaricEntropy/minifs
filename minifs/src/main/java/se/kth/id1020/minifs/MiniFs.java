@@ -86,7 +86,7 @@ public class MiniFs implements FileSystem {
 		else
 			throw new IllegalArgumentException(String.format("The path %s does not exist", path));
 		
-		return listFiles(children);
+		return listFiles(children, dir);
 	}
 
   
@@ -103,25 +103,46 @@ public class MiniFs implements FileSystem {
 	
 	public String pwd()
 	{
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		return getPath(workingDir);
 	}
 	
-	public void cd(String cmd)
+	public void cd(String path)
 	{
 		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 	}
 	
+	private String getPath(INodeDirectory dir)
+	{
+		StringBuilder sb = new StringBuilder();
+		
+		//If we are starting with the root, then the while loop won't run, so print just a "/".
+		if (dir == root)
+			sb.append("/");
+		
+		//If we hit the root just stop, no need to print the root, we've already printed the "/" for the previous dir.
+		while (dir != root)
+		{	
+			sb.insert(0, String.format("/%s",dir.getName()));
+			dir = dir.getParent();
+		}
+
+		return sb.toString();
+		
+	}
+	
+	
 	/**
-	 * Builds a formatted string of the INodes in the supplied collection. INodes will be in the same order as in the supplied collection.
+	 * Builds a formatted string of the INodes in the supplied collection. INodes will be in the same order as in the collection.
 	 * @param children TreeMap of INodes to build a string of.
 	 * @return Returns a formatted string of all the INodes in a collection.
 	 */
-	private String listFiles(TreeMap<String, INode> children)
+	private String listFiles(TreeMap<String, INode> children, INodeDirectory dir)
 	{
 		StringBuilder sb = new StringBuilder();
 		int files = 0, folders = 0;
 		
-		//TODO: Print "Directory of " and the the path.
+		sb.append(String.format("Directory of %s\n\n", getPath(dir)));
+		
 		
 		//Iterate over all INodes of this directory.
 		for(INode i : children.values())

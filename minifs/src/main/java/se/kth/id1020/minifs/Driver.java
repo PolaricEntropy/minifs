@@ -107,6 +107,8 @@ public class Driver {
 			  
 			  result = fs.cat(comp[1].trim());
 		  } else if (cmd.equals("exit")) {
+			  result = fs.pwd();
+		  } else if (cmd.equals("exit")) {
 			  bShouldExit = true;
 		  } else {
 			  result = cmd + ": command not found";

@@ -41,5 +41,10 @@ public abstract class INode {
 		else
 			throw new IllegalArgumentException("The filename or directory name syntax is incorrect.");
 	}
+	
+	public INodeDirectory getParent()
+	{
+		return parent;
+	}
 
 }

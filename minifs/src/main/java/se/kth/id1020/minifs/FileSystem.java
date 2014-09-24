@@ -23,4 +23,8 @@ public interface FileSystem {
   public String du(String path);
   
   public String cat(String path);
+  
+  public String pwd();
+  
+  public void cd(String path);
 }
