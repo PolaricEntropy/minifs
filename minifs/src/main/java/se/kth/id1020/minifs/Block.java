@@ -25,4 +25,9 @@ public class Block {
     this.data = data;
   }
   
+  public int getSize()
+  {
+	  return data.getBytes().length;
+  }
+  
 }

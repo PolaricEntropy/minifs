@@ -25,7 +25,7 @@ public class MiniFs implements FileSystem {
 		workingDir = root;
 	}
 	
-	public void mkdir(String path) throws IllegalArgumentException
+	public void mkdir(String path)
 	{	
 		String[] values = SeparatePath(path);
 		
@@ -39,7 +39,7 @@ public class MiniFs implements FileSystem {
 			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
 	}
 
-	public void touch(String path) throws IllegalArgumentException
+	public void touch(String path)
 	{
 		String[] values = SeparatePath(path);
 		
@@ -53,13 +53,28 @@ public class MiniFs implements FileSystem {
 			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
 	}
 
-  
 	public void append(String path, String data)
 	{
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		String[] values = SeparatePath(path);
+		
+		//Find the directory in the path, so we can find the file.
+		INodeDirectory dir = findDir(values[1]);
+		
+		if (dir == null)
+			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
+		
+		INode child = dir.getChild(values[0]);
+		INodeFile file;
+		
+		if (child instanceof INodeFile)
+			file = (INodeFile) child;
+		else
+			throw new IllegalArgumentException(String.format("The file %s does not exist.", values[0]));
+			
+		
+		
 	}
 
-  
 	public String ls(String path, String param)
 	{
 		INodeDirectory dir;	
@@ -87,7 +102,6 @@ public class MiniFs implements FileSystem {
 	{
 		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 	}
-
   
 	public String cat(String path)
 	{

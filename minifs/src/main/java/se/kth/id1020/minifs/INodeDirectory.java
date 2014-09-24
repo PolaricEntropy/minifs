@@ -71,33 +71,26 @@ public class INodeDirectory extends INode {
 	
 	public void sortChildrenByTime()
 	{		
-		quickSort(children, 0, children.size()-1, SortOrder.byTime);
+		quickSort(children, 0, children.size()-1, new compareByTime());
 	}
 	
 	public void sortChildrenByName()
 	{		
-		quickSort(children, 0, children.size()-1, SortOrder.byName);
+		quickSort(children, 0, children.size()-1, new compareByName());
 	}
 		
 	
-    private void quickSort(ArrayList<INode> input, int low, int high, SortOrder order) {
+    private void quickSort(ArrayList<INode> input, int low, int high, Comparator<INode> comp) {
         if(low >= high) return;
         
-        int pivot = partition(input, low, high, order);
-        quickSort(input, low, pivot-1, order);
-        quickSort(input, pivot+1, high, order);
+        int pivot = partition(input, low, high, comp);
+        quickSort(input, low, pivot-1, comp);
+        quickSort(input, pivot+1, high, comp);
     }
 
-    private int partition(ArrayList<INode> input, int low, int high, SortOrder order) {
+    private int partition(ArrayList<INode> input, int low, int high, Comparator<INode> comp) {
         int i = low + 1;
         int j = high;
-
-        Comparator<INode> comp = null;
-        
-        if (order == SortOrder.byName)
-        	comp = new compareByName();
-        else if (order == SortOrder.byTime)
-        	comp = new compareByTime();
         
         while(i <= j) {
             if(comp.compare(input.get(i), input.get(low)) <= 0) { 
