@@ -8,8 +8,8 @@ package se.kth.id1020.minifs;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.TreeMap;
 
 /**
  *
@@ -60,13 +60,7 @@ public class MiniFs implements FileSystem {
 	}
 
   
-	public String lsByTime(String path)
-	{
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
-
-  
-	public String lsByName(String path)
+	public String ls(String path, String param)
 	{
 		INodeDirectory dir;	
 		
@@ -76,19 +70,18 @@ public class MiniFs implements FileSystem {
 		else
 			dir = findDir(path);
 		
-		//TODO: Sort. They are actually sorted by default, but if we sort by time first they are not any more.
+		if (dir == null)
+			throw new IllegalArgumentException(String.format("The path %s does not exist.", path));
 		
-		//Create a ref var for this for easy access.
-		TreeMap<String, INode> children;
-		
-		if (dir != null)
-			 children = dir.getChildren();
+		if (param.trim().equals("-t"))
+			dir.sortChildrenByTime();
+		else if(param.trim().equals("-s"))
+			dir.sortChildrenByName();
 		else
-			throw new IllegalArgumentException(String.format("The path %s does not exist", path));
+			throw new IllegalArgumentException(String.format("The parameter %s is not supported by ls.", param));
 		
-		return listFiles(children, dir);
+		return listFiles(dir);
 	}
-
   
 	public String du(String path)
 	{
@@ -112,6 +105,8 @@ public class MiniFs implements FileSystem {
 		
 		if (dir != null)
 			workingDir = dir;
+		else
+			throw new IllegalArgumentException(String.format("The path %s does not exist.",path));
 	}
 	
 	public String ver()
@@ -138,22 +133,21 @@ public class MiniFs implements FileSystem {
 		
 	}
 	
-	
 	/**
 	 * Builds a formatted string of the INodes in the supplied collection. INodes will be in the same order as in the collection.
 	 * @param children TreeMap of INodes to build a string of.
 	 * @return Returns a formatted string of all the INodes in a collection.
 	 */
-	private String listFiles(TreeMap<String, INode> children, INodeDirectory dir)
+	private String listFiles(INodeDirectory dir)
 	{
+		ArrayList<INode> children = dir.getChildren();
 		StringBuilder sb = new StringBuilder();
 		int files = 0, folders = 0;
 		
 		sb.append(String.format("Directory of %s\n\n", getPath(dir)));
 		
-		
 		//Iterate over all INodes of this directory.
-		for(INode i : children.values())
+		for(INode i : children)
 		{
 			//Format the date.
 			Date date = new Date(i.getAccessTime());
@@ -162,7 +156,7 @@ public class MiniFs implements FileSystem {
 			sb.append(String.format("%s	", formatter.format(date)));
 			
 			//Check if its a dir.
-			if (i.getClass().getName() == root.getClass().getName())
+			if (i instanceof INodeDirectory)
 			{
 				sb.append("  <DIR>	");
 				folders++;
@@ -263,13 +257,13 @@ public class MiniFs implements FileSystem {
 				continue;
 			
 			//Search the children of the current directory.
-			INode result = cur.getChildren().get(dirTree[i]);
+			INode result = cur.getChild(dirTree[i]);
 		
 			//If we didn't find anything we get a null result.
 			if (result != null)
 			{				
 				//If it's a directory we'll update cur to search for the text thing.
-				if (result.getClass().getName() == root.getClass().getName())
+				if (result instanceof INodeDirectory)
 					cur = (INodeDirectory)result;
 				else //We found a file, stop and return null.
 					return null;

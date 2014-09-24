@@ -5,7 +5,7 @@
  */
 package se.kth.id1020.minifs;
 
-public abstract class INode {
+public abstract class INode{
 	
 	private String name;
 	private long accessTime;
@@ -46,5 +46,4 @@ public abstract class INode {
 	{
 		return parent;
 	}
-
 }

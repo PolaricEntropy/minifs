@@ -5,32 +5,43 @@
  */
 package se.kth.id1020.minifs;
 
-import java.util.TreeMap;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class INodeDirectory extends INode {
 
-	//Use TreeMap since it enforces the use of unique keys and optimizes searching, it's also sortable.
-	private TreeMap<String, INode> children;
+	private ArrayList<INode> children;
 	
 	public INodeDirectory(String name, INodeDirectory parent)
 	{
 		super(name, parent);
-		children = new TreeMap<String, INode>();
+		children = new ArrayList<INode>();
 		
 		//Parent is null if root node or special dir.
 		if (parent != null)
 		{
 			//Add the special directories. They have no parents since they aren't real nodes.
 			//If they had parents infinite recursion would occur.
-			children.put(".", new INodeDirectory(".", null));
-			children.put("..", new INodeDirectory("..", null));
+			children.add(new INodeDirectory(".", null));
+			children.add(new INodeDirectory("..", null));
 		}
     }
 	
 	
-	public TreeMap<String, INode> getChildren()
+	public ArrayList<INode> getChildren()
 	{
 		return children;
+	}
+	
+	public INode getChild(String name)
+	{
+		for (INode i : children)
+		{
+			if (i.getName() == name)
+				return i;
+		}
+		
+		return null;
 	}
 	
 	public void createDirectory(String name) throws IllegalArgumentException
@@ -39,8 +50,8 @@ public class INodeDirectory extends INode {
 		INodeDirectory newdir = new INodeDirectory(name, this);
 		
 		//Make sure we don't have a child with this name before.
-		if (children.containsKey(name) == false)
-			children.put(name, newdir);
+		if (getChild(name) == null)
+			children.add(newdir);
 		else
 			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
 		
@@ -52,11 +63,62 @@ public class INodeDirectory extends INode {
 		INodeFile newfile = new INodeFile(name, this);
 		
 		//Make sure we don't have a child with this name before.
-		if (children.containsKey(name) == false)
-			children.put(name, newfile);
+		if (getChild(name) == null)
+			children.add(newfile);
 		else
 			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
-		
 	}
 	
+	public void sortChildrenByTime()
+	{		
+		quickSort(children, 0, children.size()-1, SortOrder.byTime);
+	}
+	
+	public void sortChildrenByName()
+	{		
+		quickSort(children, 0, children.size()-1, SortOrder.byName);
+	}
+		
+	
+    private void quickSort(ArrayList<INode> input, int low, int high, SortOrder order) {
+        if(low >= high) return;
+        
+        int pivot = partition(input, low, high, order);
+        quickSort(input, low, pivot-1, order);
+        quickSort(input, pivot+1, high, order);
+    }
+
+    private int partition(ArrayList<INode> input, int low, int high, SortOrder order) {
+        int i = low + 1;
+        int j = high;
+
+        Comparator<INode> comp = null;
+        
+        if (order == SortOrder.byName)
+        	comp = new compareByName();
+        else if (order == SortOrder.byTime)
+        	comp = new compareByTime();
+        
+        while(i <= j) {
+            if(comp.compare(input.get(i), input.get(low)) <= 0) { 
+                i++; 
+            }
+            else if(comp.compare(input.get(j), input.get(low)) > 0) { 
+                j--;
+            }
+            else if(j < i) {
+                break;
+            }
+            else
+                exchange(input, i, j);
+        }
+        exchange(input, low, j);
+        return j;
+    }
+
+    private void exchange(ArrayList<INode> a, int i, int j) {
+        INode tmp = a.get(i);
+        a.set(i,a.get(j));
+        a.set(j, tmp);
+    }
 }

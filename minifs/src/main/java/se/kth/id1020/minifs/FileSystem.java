@@ -16,10 +16,8 @@ public interface FileSystem {
   
   public void append(String path, String data);
   
-  public String lsByTime(String path);
-  
-  public String lsByName(String path);
-  
+  public String ls(String path, String param);
+
   public String du(String path);
   
   public String cat(String path);

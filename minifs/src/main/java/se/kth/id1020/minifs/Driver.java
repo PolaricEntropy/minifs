@@ -88,13 +88,7 @@ public class Driver {
 			  else
 				  path = subComp[1].trim();
 			  
-			  if (param.equals("-t")) {
-				  result = fs.lsByTime(path);
-			  } else if (param.equals("-s")) {
-				  result = fs.lsByName(path);
-			  } else {
-				  result = param + ": parameter not recognized for ls";
-			  }
+			  result = fs.ls(path, param);
 		  } else if (cmd.equals("du")) {
 			  if (comp.length <= 1)
 				  throw new IllegalArgumentException("Syntax error. First argument of du can not be empty.");
