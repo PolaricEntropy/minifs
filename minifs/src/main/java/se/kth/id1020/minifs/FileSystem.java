@@ -27,4 +27,6 @@ public interface FileSystem {
   public String pwd();
   
   public void cd(String path);
+  
+  public String ver();
 }

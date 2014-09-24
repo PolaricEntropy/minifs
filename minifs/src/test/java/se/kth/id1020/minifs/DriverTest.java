@@ -50,6 +50,11 @@ public class DriverTest extends TestCase {
 		// TODO Auto-generated method stub
 		
 	}
+
+	public String ver() {
+		// TODO Auto-generated method stub
+		return null;
+	}
     
   }
   

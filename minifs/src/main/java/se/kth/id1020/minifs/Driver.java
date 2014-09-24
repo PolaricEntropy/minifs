@@ -112,6 +112,8 @@ public class Driver {
 				  throw new IllegalArgumentException("Syntax error. First argument of cd can not be empty.");
 			  
 			  fs.cd(comp[1].trim());
+		  } else if (cmd.equals("ver")) {
+			  result = fs.ver();
 		  } else if (cmd.equals("exit")) {
 			  bShouldExit = true;
 		  } else {

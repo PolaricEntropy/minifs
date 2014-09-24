@@ -114,6 +114,11 @@ public class MiniFs implements FileSystem {
 			workingDir = dir;
 	}
 	
+	public String ver()
+	{
+		return "Ehrby FileSystem v1.0";
+	}
+	
 	private String getPath(INodeDirectory dir)
 	{
 		StringBuilder sb = new StringBuilder();
@@ -217,46 +222,33 @@ public class MiniFs implements FileSystem {
 	 */
 	private INodeDirectory findDir(String path)
 	{
+		//Assume working dir for now, anything else discovered will change this to what it should be.
 		INodeDirectory cur = workingDir;
 		
 		//If path doesn't end with a "/", then add one. This way we will have at least one "/".
-		if (path.contains("/") == false)
+		if (path.endsWith("/") == false)
 			path += "/";
 		
-		while (true)
+		//If we start with . or .. get the right node and trim the path to remove the dots.
+		while (path.startsWith("."))
 		{	
-			
-			if (path.startsWith("/"))
+			 if (path.startsWith("../")) //Start from working dirs parent.
 			{
-				cur = root;
-				path = path.substring(1); //Trim away the "/".
-				break;
-			}
-			else if (path.startsWith("..")) //Start from working dirs parent.
-			{
-				cur = workingDir.getParent();
+				cur = cur.getParent();
 				path = path.substring(3);
 				
 				//If we stepped beyond the root node, then go back and work from root.
 				if (cur == null)
 					cur = root;
 			}
-			else if (path.startsWith(".")) //Start from working dir.
-			{
-				cur = workingDir;
+			else if (path.startsWith("./")) //Start from working dir.
 				path = path.substring(2);
-			}
-			else if (path.isEmpty())
-			{
-				break;
-			}
-			else
-			{
-				cur = workingDir;
-				break;
-			}
-				
-			
+		}
+		
+		if (path.startsWith("/"))
+		{
+			cur = root;
+			path = path.substring(1); //Trim away the "/".
 		}
 		
 		
