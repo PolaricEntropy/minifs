@@ -27,4 +27,6 @@ public interface FileSystem {
   public void cd(String path);
   
   public String ver();
+  
+  public void rm(String path, String param);
 }

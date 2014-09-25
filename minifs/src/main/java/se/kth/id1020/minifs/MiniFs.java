@@ -115,10 +115,37 @@ public class MiniFs implements FileSystem {
 		else
 			throw new IllegalArgumentException(String.format("The path %s does not exist.",path));
 	}
-	
+
 	public String ver()
 	{
 		return "Ehrby FileSystem v1.0";
+	}
+	
+	public void rm(String path, String param)
+	{
+		INodeDirectory dir = findDir(path);
+		
+		if (dir == null)
+			throw new IllegalArgumentException(String.format("The directory %s does not exist.", path));
+		
+		if (param.trim().isEmpty())
+		{
+			INodeDirectory parent = dir.getParent();
+			
+			if (dir.getChildren().isEmpty())
+				parent.getChildren().remove(dir);
+			else
+				throw new IllegalArgumentException(String.format("The directory %s is not empty.", path));
+		
+		}
+		else if(param.trim().equals("-rf"))
+		{
+			//Find the parent, remove the child from the parent.
+			INodeDirectory parent = dir.getParent();
+			parent.getChildren().remove(dir);
+		}
+		else
+			throw new IllegalArgumentException(String.format("The parameter %s is not supported by rm.", param));
 	}
 	
 	private Object[] diskUsage(INodeDirectory dir, StringBuilder sb)
@@ -130,13 +157,7 @@ public class MiniFs implements FileSystem {
 		for (INode child : children)
 		{
 			if (child instanceof INodeDirectory)
-			{
-				//Make sure we don't do the special . and .. directories.
-				if (!(child.getName().equals(".") || child.getName().equals("..")))
-				{
-					dirTotalSize += (Integer) (diskUsage((INodeDirectory) child, sb))[1];	
-				}
-			}
+				dirTotalSize += (Integer) (diskUsage((INodeDirectory) child, sb))[1];	
 		}
 		
 		for (INode child : children)
@@ -204,17 +225,28 @@ public class MiniFs implements FileSystem {
 		ArrayList<INode> children = dir.getChildren();
 		StringBuilder sb = new StringBuilder();
 		int files = 0, folders = 0;
+		DateFormat formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss:SSS");
 		
+		//Add info about what directory we are printing.
 		sb.append(String.format("Directory of %s\n\n", getPath(dir)));
+		
+		//Get the accessTime for our folder, it's used for the . and .. folders.
+		Date accessTime = new Date(dir.getAccessTime());
+		
+		if (dir != root)
+		{
+			//Add our special folders to the list.
+			sb.append(String.format("%s   <DIR>	.\n", formatter.format(accessTime)));
+			sb.append(String.format("%s   <DIR>	..\n", formatter.format(accessTime)));
+			folders += 2;
+		}
 		
 		//Iterate over all INodes of this directory.
 		for(INode i : children)
 		{
 			//Format the date.
-			Date date = new Date(i.getAccessTime());
-			DateFormat formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss:SSS");
-			
-			sb.append(String.format("%s	", formatter.format(date)));
+			accessTime = new Date(i.getAccessTime());
+			sb.append(String.format("%s	", formatter.format(accessTime)));
 			
 			//Check if its a dir.
 			if (i instanceof INodeDirectory)

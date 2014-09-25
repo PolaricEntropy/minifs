@@ -89,6 +89,25 @@ public class Driver {
 				  path = subComp[1].trim();
 			  
 			  result = fs.ls(path, param);
+		  } else if (cmd.equals("rm")) {
+			  
+			  if (comp.length <= 1)
+				  throw new IllegalArgumentException("Syntax error. First argument of rm can not be empty.");
+			  
+			  String[] subComp = comp[1].split(" ", 2);
+			  String param = subComp[0].trim().toLowerCase();
+			  String path;
+			  
+			  //If second argument is empty that means that the first argument was the was the path.
+			  if (subComp.length <= 1)
+			  {
+				  path = subComp[0].trim();
+				  param = "";
+			  }
+			  else
+				  path = subComp[1].trim();
+			  
+			  fs.rm(path, param);
 		  } else if (cmd.equals("du")) {
 			  if (comp.length <= 1)
 				  throw new IllegalArgumentException("Syntax error. First argument of du can not be empty.");

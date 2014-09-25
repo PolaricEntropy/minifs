@@ -16,15 +16,6 @@ public class INodeDirectory extends INode {
 	{
 		super(name, parent);
 		children = new ArrayList<INode>();
-		
-		//Parent is null if root node or special dir.
-		if (parent != null)
-		{
-			//Add the special directories. They have no parents since they aren't real nodes.
-			//If they had parents infinite recursion would occur.
-			children.add(new INodeDirectory(".", null));
-			children.add(new INodeDirectory("..", null));
-		}
     }
 	
 	
