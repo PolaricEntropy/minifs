@@ -181,7 +181,7 @@ public class MiniFs implements FileSystem {
 	{
 		String[] values = SeparatePath(path);
 		
-		//Find the directory in the path, so we can find the file.S
+		//Find the directory in the path, so we can find the file.
 		INodeDirectory dir = findDir(values[1]);
 		
 		if (dir == null)
