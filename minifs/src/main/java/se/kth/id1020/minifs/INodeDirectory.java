@@ -37,7 +37,7 @@ public class INodeDirectory extends INode {
 	{
 		for (INode i : children)
 		{
-			if (i.getName() == name)
+			if (i.getName().equals(name))
 				return i;
 		}
 		
