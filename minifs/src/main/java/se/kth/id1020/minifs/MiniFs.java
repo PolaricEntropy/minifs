@@ -55,24 +55,7 @@ public class MiniFs implements FileSystem {
 
 	public void append(String path, String data)
 	{
-		String[] values = SeparatePath(path);
-		
-		//Find the directory in the path, so we can find the file.
-		INodeDirectory dir = findDir(values[1]);
-		
-		if (dir == null)
-			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
-		
-		INode child = dir.getChild(values[0]);
-		INodeFile file;
-		
-		if (child instanceof INodeFile)
-			file = (INodeFile) child;
-		else
-			throw new IllegalArgumentException(String.format("The file %s does not exist.", values[0]));
-			
-		
-		
+		findFile(path).addData(data);
 	}
 
 	public String ls(String path, String param)
@@ -100,12 +83,12 @@ public class MiniFs implements FileSystem {
   
 	public String du(String path)
 	{
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		
 	}
   
 	public String cat(String path)
-	{
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	{		
+		return findFile(path).getData();
 	}
 	
 	public String pwd()
@@ -126,6 +109,24 @@ public class MiniFs implements FileSystem {
 	public String ver()
 	{
 		return "Ehrby FileSystem v1.0";
+	}
+	
+	private INodeFile findFile(String path)
+	{
+		String[] values = SeparatePath(path);
+		
+		//Find the directory in the path, so we can find the file.
+		INodeDirectory dir = findDir(values[1]);
+		
+		if (dir == null)
+			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
+		
+		INode child = dir.getChild(values[0]);
+		
+		if (child instanceof INodeFile)
+			return (INodeFile) child;
+		else
+			throw new IllegalArgumentException(String.format("The file %s does not exist.", values[0]));
 	}
 	
 	private String getPath(INodeDirectory dir)
@@ -291,6 +292,4 @@ public class MiniFs implements FileSystem {
 		
 	}
 
-	
-	
 }

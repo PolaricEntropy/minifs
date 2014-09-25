@@ -13,21 +13,24 @@ public class Block {
 
   private String data;
 
-  public Block(String data) {
+  public Block(String data)
+  {
     this.data = data;
   }
 
-  public String getData() {
+  public String getData()
+  {
     return data;
   }
 
-  public void setData(String data) {
+  public void setData(String data)
+  {
     this.data = data;
   }
   
   public int getSize()
   {
-	  return data.getBytes().length;
+	  return data.length();
   }
   
 }
