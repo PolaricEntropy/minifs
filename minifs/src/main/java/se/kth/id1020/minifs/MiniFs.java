@@ -55,7 +55,10 @@ public class MiniFs implements FileSystem {
 
 	public void append(String path, String data)
 	{
-		findFile(path).addData(data);
+		INodeFile file = findFile(path);
+		
+		file.addData(data);
+		file.setAccessTime(System.currentTimeMillis());
 	}
 
 	public String ls(String path, String param)
@@ -69,7 +72,7 @@ public class MiniFs implements FileSystem {
 			dir = findDir(path);
 		
 		if (dir == null)
-			throw new IllegalArgumentException(String.format("The path %s does not exist.", path));
+			throw new IllegalArgumentException(String.format("The directory %s does not exist.", path));
 		
 		if (param.trim().equals("-t"))
 			dir.sortChildrenByTime();
@@ -82,10 +85,17 @@ public class MiniFs implements FileSystem {
 	}
   
 	public String du(String path)
-	{
+	{	
+		//Find the directory we should calculate from.
+		INodeDirectory dir = findDir(path);
 		
+		//Couldn't find directory.
+		if (dir == null)
+			throw new IllegalArgumentException(String.format("The directory %s does not exist.", path));
+		
+		return diskUsage(dir, new StringBuilder())[0].toString();
 	}
-  
+	
 	public String cat(String path)
 	{		
 		return findFile(path).getData();
@@ -111,11 +121,46 @@ public class MiniFs implements FileSystem {
 		return "Ehrby FileSystem v1.0";
 	}
 	
+	private Object[] diskUsage(INodeDirectory dir, StringBuilder sb)
+	{
+		ArrayList<INode> children = dir.getChildren();
+		int dirTotalSize = 0;
+		
+		//Loop through all directories first to get their results first.
+		for (INode child : children)
+		{
+			if (child instanceof INodeDirectory)
+			{
+				//Make sure we don't do the special . and .. directories.
+				if (!(child.getName().equals(".") || child.getName().equals("..")))
+				{
+					dirTotalSize += (Integer) (diskUsage((INodeDirectory) child, sb))[1];	
+				}
+			}
+		}
+		
+		for (INode child : children)
+		{
+			if (child instanceof INodeFile)
+			{
+				INodeFile file = (INodeFile)child;
+				sb.append(String.format("%s %s \n", file.getSize(), getPath(child)));
+				dirTotalSize += file.getSize();
+			}
+		}
+		
+		
+		//We've now done all files and directories for this directory. Print total for this dir.
+		sb.append(String.format("%s %s \n", dirTotalSize, getPath(dir)));
+		
+		return new Object[]{sb, dirTotalSize};
+	}
+	
 	private INodeFile findFile(String path)
 	{
 		String[] values = SeparatePath(path);
 		
-		//Find the directory in the path, so we can find the file.
+		//Find the directory in the path, so we can find the file.S
 		INodeDirectory dir = findDir(values[1]);
 		
 		if (dir == null)
@@ -129,21 +174,22 @@ public class MiniFs implements FileSystem {
 			throw new IllegalArgumentException(String.format("The file %s does not exist.", values[0]));
 	}
 	
-	private String getPath(INodeDirectory dir)
+	private String getPath(INode dir)
 	{
 		StringBuilder sb = new StringBuilder();
 		
 		//If we are starting with the root, then the while loop won't run, so print just a "/".
 		if (dir == root)
 			sb.append("/");
-		
-		//If we hit the root just stop, no need to print the root, we've already printed the "/" for the previous dir.
-		while (dir != root)
-		{	
-			sb.insert(0, String.format("/%s",dir.getName()));
-			dir = dir.getParent();
+		else
+		{
+			//If we hit the root just stop, no need to print the root, we've already printed the "/" for the previous dir.
+			while (dir != root)
+			{	
+				sb.insert(0, String.format("/%s",dir.getName()));
+				dir = dir.getParent();
+			}
 		}
-
 		return sb.toString();
 		
 	}
@@ -233,6 +279,10 @@ public class MiniFs implements FileSystem {
 	{
 		//Assume working dir for now, anything else discovered will change this to what it should be.
 		INodeDirectory cur = workingDir;
+		
+		//If we have an empty path then we should start form working dir.
+		if (path.isEmpty())
+			return cur;
 		
 		//If path doesn't end with a "/", then add one. This way we will have at least one "/".
 		if (path.endsWith("/") == false)

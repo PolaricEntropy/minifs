@@ -62,7 +62,7 @@ public class INodeFile extends INode {
 		int size = 0;
 		
 		for (Block i : blocks)
-			size =+ i.getSize();
+			size += i.getSize();
 		
 		return size;
 	}

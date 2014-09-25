@@ -23,8 +23,8 @@ public class Driver {
     FileSystem fs = new MiniFs();
     
     while (bShouldExit == false)
-    	StdOut.println(processCmd(fs, StdIn.readLine()));	
-
+    	StdOut.println(processCmd(fs, StdIn.readLine()));
+    
     //String fileResult = processCmdFile(fs, args[0]);
     //StdOut.println(fileResult);
   }
