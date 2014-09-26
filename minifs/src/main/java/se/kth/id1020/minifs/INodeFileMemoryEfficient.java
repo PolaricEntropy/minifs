@@ -6,17 +6,19 @@
 
 package se.kth.id1020.minifs;
 
-import java.util.ArrayList;
+import java.util.Stack;
 
-public class INodeFile extends INode {
+public class INodeFileMemoryEfficient extends INode {
 
-	//ArrayList takes constant time for add instructions. 
-	private ArrayList<Block> blocks;
+	//Stack is more memory efficient then ArrayList as it doesn't have a load factor, it's 100% full all of the time.
+	//Another thing to improve memory efficiency is to change the block size based on what sort of files that's likely going to be stored
+	//in the file system.
+	private Stack<Block> blocks;
 	
-	public INodeFile(String name, INodeDirectory parent)
+	public INodeFileMemoryEfficient(String name, INodeDirectory parent)
 	{
 		super(name, parent);
-		blocks = new ArrayList<Block>();
+		blocks = new Stack<Block>();
 	}
 	
 	/**
@@ -26,7 +28,6 @@ public class INodeFile extends INode {
 	public void addData(String data)
 	{
 		//TODO: Start appending from last used block.
-		
 		
 		//Blocks have a fixed size.
 		int startIndex = 0, endIndex = Block.BLOCK_SIZE-1;

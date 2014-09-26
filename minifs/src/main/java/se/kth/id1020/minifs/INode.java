@@ -5,6 +5,11 @@
  */
 package se.kth.id1020.minifs;
 
+/**
+ * Base class for INodes. 
+ * @author Björn Ehrby
+ *
+ */
 public abstract class INode{
 	
 	private String name;
@@ -35,13 +40,18 @@ public abstract class INode{
 
 	public void setName(String name)
 	{
-		//Other functions calling this function should sanitize user supplied input, but just in case.
-		if (name.contains("/") == false)
+		//Other functions calling this function should sanitize user supplied input, but just in case,
+		//check for illegal characters.
+		if (name.contains(FileSystem.lineSeparator) == false)
 			this.name = name;
 		else
 			throw new IllegalArgumentException("The filename or directory name syntax is incorrect.");
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public INodeDirectory getParent()
 	{
 		return parent;

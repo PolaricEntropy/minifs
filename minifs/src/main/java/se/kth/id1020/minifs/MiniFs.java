@@ -11,17 +11,24 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-/**
- *
- */
-public class MiniFs implements FileSystem {
+//Please note that some of the code in this assignment could be more optimized,
+//streamlined and standardized. However due to time constraints such refactoring
+//will have to wait, the code is still fully functional.
 
+
+ /**
+  * Mini file system that implements some basic file system operations.
+  * @author Björn Ehrby
+  *
+  */
+public class MiniFs implements FileSystem {
+	
 	private final INodeDirectory root;
 	private INodeDirectory workingDir; //We want to support state in form of a working directory.
   
 	public MiniFs()
 	{
-		root = new INodeDirectory("/", null); //Null parent, since this is the root node.
+		root = new INodeDirectory(lineSeparator, null); //Null parent, since this is the root node.
 		workingDir = root;
 	}
 	
@@ -57,6 +64,7 @@ public class MiniFs implements FileSystem {
 	{
 		INodeFile file = findFile(path);
 		
+		//Find file checks for nulls, so we don't have to here. findDir should also do that.
 		file.addData(data);
 		file.setAccessTime(System.currentTimeMillis());
 	}
@@ -65,15 +73,13 @@ public class MiniFs implements FileSystem {
 	{
 		INodeDirectory dir;	
 		
-		//If we have zero length we have no arguments and should work from the working directory.
-		if (path.length() == 0)
-			dir = workingDir;
-		else
-			dir = findDir(path);
+		//Find the directory we are going to ls.
+		dir = findDir(path);
 		
 		if (dir == null)
 			throw new IllegalArgumentException(String.format("The directory %s does not exist.", path));
 		
+		//Sort depending on parameter.
 		if (param.trim().equals("-t"))
 			dir.sortChildrenByTime();
 		else if(param.trim().equals("-s"))
@@ -86,13 +92,14 @@ public class MiniFs implements FileSystem {
   
 	public String du(String path)
 	{	
-		//Find the directory we should calculate from.
+		//Find the directory we should calculate.
 		INodeDirectory dir = findDir(path);
 		
-		//Couldn't find directory.
 		if (dir == null)
 			throw new IllegalArgumentException(String.format("The directory %s does not exist.", path));
 		
+		//Begin calculate from the directory we found, send along a StringBuilder that should hold the string.
+		//Return the entire result string that's stored in the 0 position of the object array. 
 		return diskUsage(dir, new StringBuilder())[0].toString();
 	}
 	
@@ -108,6 +115,7 @@ public class MiniFs implements FileSystem {
 	
 	public void cd(String path)
 	{
+		//Find the dir from the path we have supplied.
 		INodeDirectory dir = findDir(path);
 		
 		if (dir != null)
@@ -123,43 +131,60 @@ public class MiniFs implements FileSystem {
 	
 	public void rm(String path, String param)
 	{
-		INodeDirectory dir = findDir(path);
+		//TODO: Should be able to remove files as well.
 		
-		if (dir == null)
+		//Find the directory we should remove.
+		INode node = findDir(path);
+		
+		if (node == null)
 			throw new IllegalArgumentException(String.format("The directory %s does not exist.", path));
 		
+		//If we have no parameters we need to check if the node we are going to remove does not have any children.
 		if (param.trim().isEmpty())
 		{
-			INodeDirectory parent = dir.getParent();
+			INodeDirectory parent = node.getParent();
 			
-			if (dir.getChildren().isEmpty())
-				parent.getChildren().remove(dir);
-			else
-				throw new IllegalArgumentException(String.format("The directory %s is not empty.", path));
+			if (node instanceof INodeDirectory)
+			{
+				INodeDirectory dir1 = (INodeDirectory) node;
+				if (dir1.getChildren().isEmpty() == false)
+					throw new IllegalArgumentException(String.format("The directory %s is not empty.", path));
+			}
+			
+			parent.getChildren().remove(node);
 		
 		}
 		else if(param.trim().equals("-rf"))
 		{
 			//Find the parent, remove the child from the parent.
-			INodeDirectory parent = dir.getParent();
-			parent.getChildren().remove(dir);
+			INodeDirectory parent = node.getParent();
+			parent.getChildren().remove(node);
 		}
 		else
 			throw new IllegalArgumentException(String.format("The parameter %s is not supported by rm.", param));
 	}
 	
+	/**
+	 * Gets the disk usage of all the directories and files in the specified folder. This method recursively searches all sub-directories of a given directory.
+	 * @param dir The directory to begin searching from.
+	 * @param sb Reference to a StringBuilder to add the result of the printout to.
+	 * @return Returns an object array with position[0] as the StringBuilder reference and position[1] as the total size of all sub-directories. 
+	 */
 	private Object[] diskUsage(INodeDirectory dir, StringBuilder sb)
 	{
+		//Children and total size of the current directory.
 		ArrayList<INode> children = dir.getChildren();
 		int dirTotalSize = 0;
 		
-		//Loop through all directories first to get their results first.
+		//Loop through all directories first to get their results first in the print out.
 		for (INode child : children)
 		{
+			//Do diskUsage on the subdirs adding their total size to this dirs total size.
 			if (child instanceof INodeDirectory)
 				dirTotalSize += (Integer) (diskUsage((INodeDirectory) child, sb))[1];	
 		}
 		
+		//Loop through all files and add them to the print out.
 		for (INode child : children)
 		{
 			if (child instanceof INodeFile)
@@ -177,52 +202,38 @@ public class MiniFs implements FileSystem {
 		return new Object[]{sb, dirTotalSize};
 	}
 	
-	private INodeFile findFile(String path)
-	{
-		String[] values = SeparatePath(path);
-		
-		//Find the directory in the path, so we can find the file.
-		INodeDirectory dir = findDir(values[1]);
-		
-		if (dir == null)
-			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
-		
-		INode child = dir.getChild(values[0]);
-		
-		if (child instanceof INodeFile)
-			return (INodeFile) child;
-		else
-			throw new IllegalArgumentException(String.format("The file %s does not exist.", values[0]));
-	}
-	
-	private String getPath(INode dir)
+	/**
+	 * Returns the path to a specified INode.
+	 * @param node The INode to get the path for.
+	 * @return Returns the absolute path to the INode.
+	 */
+	private String getPath(INode node)
 	{
 		StringBuilder sb = new StringBuilder();
 		
 		//If we are starting with the root, then the while loop won't run, so print just a "/".
-		if (dir == root)
-			sb.append("/");
+		if (node == root)
+			sb.append(lineSeparator);
 		else
 		{
-			//If we hit the root just stop, no need to print the root, we've already printed the "/" for the previous dir.
-			while (dir != root)
+			//If we hit the root just stop, no need to print the root, we've already printed the "/" for the first dir.
+			while (node != root)
 			{	
-				sb.insert(0, String.format("/%s",dir.getName()));
-				dir = dir.getParent();
+				sb.insert(0, String.format("/%s",node.getName()));
+				node = node.getParent();
 			}
 		}
 		return sb.toString();
-		
 	}
 	
 	/**
-	 * Builds a formatted string of the INodes in the supplied collection. INodes will be in the same order as in the collection.
-	 * @param children TreeMap of INodes to build a string of.
-	 * @return Returns a formatted string of all the INodes in a collection.
+	 * Builds a formatted string of the INodes that belong to the specified INodeDirectory.
+	 * @param dir INodeDirectory to list.
+	 * @return Returns a formatted string of all the INodes in the directory.
 	 */
 	private String listFiles(INodeDirectory dir)
 	{
-		ArrayList<INode> children = dir.getChildren();
+		//StringBuilder for print out, variables to keep count of folders, formatter to format our time/date properly.
 		StringBuilder sb = new StringBuilder();
 		int files = 0, folders = 0;
 		DateFormat formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss:SSS");
@@ -233,6 +244,7 @@ public class MiniFs implements FileSystem {
 		//Get the accessTime for our folder, it's used for the . and .. folders.
 		Date accessTime = new Date(dir.getAccessTime());
 		
+		//The root folder should not have . and .. in printout.
 		if (dir != root)
 		{
 			//Add our special folders to the list.
@@ -242,7 +254,7 @@ public class MiniFs implements FileSystem {
 		}
 		
 		//Iterate over all INodes of this directory.
-		for(INode i : children)
+		for(INode i : dir.getChildren())
 		{
 			//Format the date.
 			accessTime = new Date(i.getAccessTime());
@@ -263,7 +275,7 @@ public class MiniFs implements FileSystem {
 			sb.append(String.format("%s\n", i.getName()));
 		}
 		
-		
+		//Add some stats for this folder.
 		sb.append(String.format("		%s File(s)\n", files));
 		sb.append(String.format("		%s Dir(s)\n", folders));
 		
@@ -278,14 +290,14 @@ public class MiniFs implements FileSystem {
 	private String[] SeparatePath(String path)
 	{	
 		//Get the index of the last "/", we get -1 if we have no "/".
-		int index = path.lastIndexOf("/");
+		int index = path.lastIndexOf(lineSeparator);
 		
 		//If the slash is the last character, if the path looks like "home/".
-		if (index == path.length()-1 && path.length() > 0)
+		if (index == (path.length()-1) && path.length() > 0)
 		{
 			//Remove the "/" and get the last "/" again.
 			path = path.substring(0, index);
-			index = path.lastIndexOf("/");
+			index = path.lastIndexOf(lineSeparator);
 		}
 		
 		//If we have a "/" in the string.
@@ -301,11 +313,37 @@ public class MiniFs implements FileSystem {
 	}
 	
 	/**
+	 * Finds and returns the specified file.
+	 * @param path The path to the file we want to find.
+	 * @return The INodeFile corresponding to the path.
+	 */
+	private INodeFile findFile(String path)
+	{
+		//Separate the path into its components, path and node name.
+		String[] values = SeparatePath(path);
+		
+		//Find the directory in the path, so we can find the file.
+		INodeDirectory dir = findDir(values[1]);
+		
+		if (dir == null)
+			throw new IllegalArgumentException(String.format("The directory %s does not exist.", values[1]));
+		
+		//Finds our node.
+		INode child = dir.getChild(values[0]);
+		
+		//Check if the node is indeed a file.
+		if (child instanceof INodeFile)
+			return (INodeFile) child;
+		else
+			throw new IllegalArgumentException(String.format("The file %s does not exist.", values[0]));
+	}
+	
+	/**
 	 * Finds and returns the specified directory.
-	 * If the path is prefixed with "/" we search from the root directory, otherwise we are searching from the current directory.
+	 * If the path is prefixed with "/" we search from the root directory, otherwise we are searching from the working directory.
 	 * 
 	 * @param path Directory path to search for.
-	 * @return Returns the directory that matches the directory path.
+	 * @return Returns the INodeDirectory that matches the directory path.
 	 */
 	private INodeDirectory findDir(String path)
 	{
@@ -317,13 +355,13 @@ public class MiniFs implements FileSystem {
 			return cur;
 		
 		//If path doesn't end with a "/", then add one. This way we will have at least one "/".
-		if (path.endsWith("/") == false)
-			path += "/";
+		if (path.endsWith(lineSeparator) == false)
+			path += lineSeparator;
 		
 		//If we start with . or .. get the right node and trim the path to remove the dots.
 		while (path.startsWith("."))
 		{	
-			 if (path.startsWith("../")) //Start from working dirs parent.
+			 if (path.startsWith("..")) //Start from working dirs parent.
 			{
 				cur = cur.getParent();
 				path = path.substring(3);
@@ -332,11 +370,11 @@ public class MiniFs implements FileSystem {
 				if (cur == null)
 					cur = root;
 			}
-			else if (path.startsWith("./")) //Start from working dir.
+			else if (path.startsWith(".")) //Start from working dir.
 				path = path.substring(2);
 		}
 		
-		if (path.startsWith("/"))
+		if (path.startsWith(lineSeparator))
 		{
 			cur = root;
 			path = path.substring(1); //Trim away the "/".
@@ -344,7 +382,7 @@ public class MiniFs implements FileSystem {
 		
 		
 		//Split the input path into an array so we can process each directory individually.
-		String[] dirTree = path.split("/");
+		String[] dirTree = path.split(lineSeparator);
 		
 		//Search for each directory in the path.
 		for (int i = 0; i < dirTree.length; i++)
