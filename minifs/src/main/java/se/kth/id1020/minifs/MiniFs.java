@@ -28,7 +28,7 @@ public class MiniFs implements FileSystem {
   
 	public MiniFs()
 	{
-		root = new INodeDirectory(lineSeparator, null); //Null parent, since this is the root node.
+		root = new INodeDirectory(pathDelimiter, null); //Null parent, since this is the root node.
 		workingDir = root;
 	}
 	
@@ -98,9 +98,13 @@ public class MiniFs implements FileSystem {
 		if (dir == null)
 			throw new IllegalArgumentException(String.format("The directory %s does not exist.", path));
 		
-		//Begin calculate from the directory we found, send along a StringBuilder that should hold the string.
-		//Return the entire result string that's stored in the 0 position of the object array. 
-		return diskUsage(dir, new StringBuilder())[0].toString();
+		//Create a StringBuilder that the recursive function should use for adding stuff.
+		StringBuilder sb = new StringBuilder();
+		
+		//Do the calculations, the result will be in the StringBuilder we sent in as reference.
+		diskUsage(dir, sb);
+		
+		return sb.toString();
 	}
 	
 	public String cat(String path)
@@ -170,7 +174,7 @@ public class MiniFs implements FileSystem {
 	 * @param sb Reference to a StringBuilder to add the result of the printout to.
 	 * @return Returns an object array with position[0] as the StringBuilder reference and position[1] as the total size of all sub-directories. 
 	 */
-	private Object[] diskUsage(INodeDirectory dir, StringBuilder sb)
+	private int diskUsage(INodeDirectory dir, StringBuilder sb)
 	{
 		//Children and total size of the current directory.
 		ArrayList<INode> children = dir.getChildren();
@@ -181,7 +185,7 @@ public class MiniFs implements FileSystem {
 		{
 			//Do diskUsage on the subdirs adding their total size to this dirs total size.
 			if (child instanceof INodeDirectory)
-				dirTotalSize += (Integer) (diskUsage((INodeDirectory) child, sb))[1];	
+				dirTotalSize += diskUsage((INodeDirectory) child, sb);	
 		}
 		
 		//Loop through all files and add them to the print out.
@@ -199,7 +203,7 @@ public class MiniFs implements FileSystem {
 		//We've now done all files and directories for this directory. Print total for this dir.
 		sb.append(String.format("%s %s \n", dirTotalSize, getPath(dir)));
 		
-		return new Object[]{sb, dirTotalSize};
+		return dirTotalSize;
 	}
 	
 	/**
@@ -213,7 +217,7 @@ public class MiniFs implements FileSystem {
 		
 		//If we are starting with the root, then the while loop won't run, so print just a "/".
 		if (node == root)
-			sb.append(lineSeparator);
+			sb.append(pathDelimiter);
 		else
 		{
 			//If we hit the root just stop, no need to print the root, we've already printed the "/" for the first dir.
@@ -290,14 +294,14 @@ public class MiniFs implements FileSystem {
 	private String[] SeparatePath(String path)
 	{	
 		//Get the index of the last "/", we get -1 if we have no "/".
-		int index = path.lastIndexOf(lineSeparator);
+		int index = path.lastIndexOf(pathDelimiter);
 		
 		//If the slash is the last character, if the path looks like "home/".
 		if (index == (path.length()-1) && path.length() > 0)
 		{
 			//Remove the "/" and get the last "/" again.
 			path = path.substring(0, index);
-			index = path.lastIndexOf(lineSeparator);
+			index = path.lastIndexOf(pathDelimiter);
 		}
 		
 		//If we have a "/" in the string.
@@ -355,8 +359,8 @@ public class MiniFs implements FileSystem {
 			return cur;
 		
 		//If path doesn't end with a "/", then add one. This way we will have at least one "/".
-		if (path.endsWith(lineSeparator) == false)
-			path += lineSeparator;
+		if (path.endsWith(pathDelimiter) == false)
+			path += pathDelimiter;
 		
 		//If we start with . or .. get the right node and trim the path to remove the dots.
 		while (path.startsWith("."))
@@ -374,7 +378,7 @@ public class MiniFs implements FileSystem {
 				path = path.substring(2);
 		}
 		
-		if (path.startsWith(lineSeparator))
+		if (path.startsWith(pathDelimiter))
 		{
 			cur = root;
 			path = path.substring(1); //Trim away the "/".
@@ -382,7 +386,7 @@ public class MiniFs implements FileSystem {
 		
 		
 		//Split the input path into an array so we can process each directory individually.
-		String[] dirTree = path.split(lineSeparator);
+		String[] dirTree = path.split(pathDelimiter);
 		
 		//Search for each directory in the path.
 		for (int i = 0; i < dirTree.length; i++)
