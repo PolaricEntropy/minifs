@@ -1,0 +1,29 @@
+mkdir home
+
+cd home
+
+mkdir docs
+
+mkdir student
+
+mkdir student/thesis
+
+mkdir data
+
+touch docs/doc1.txt
+
+touch docs/doc2.txt
+
+touch student/thesis/thesis.txt
+
+touch student/proj.txt
+
+append docs/doc1.txt Lorem ipsu
+
+append docs/doc2.txt Lorem ipsum dolor si
+
+append student/thesis/thesis.txt Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus a interdum neque. Aenean posuere.
+
+append student/proj.txt Lorem ipsum dolor sit amet, consectetur adipiscing
+
+du /home

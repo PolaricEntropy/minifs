@@ -13,7 +13,8 @@ public class Block {
 
 	//Fixed block size to optimize memory efficiency, can be adjusted as needed for file systems with
 	//small files (should have low block size) and large files (should have large block size). There is
-	//an overhead of many blocks due to low size and lot of slack space if large size.
+	//a memory overhead of many blocks due to low block size and large file; and there are a of a lot of
+	//slack space if we have a large block size with small files.
 	public static final int BLOCK_SIZE = 64;
 	private char[] data;
 	private int endOfDataIndex = 0;
