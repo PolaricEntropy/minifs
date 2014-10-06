@@ -17,7 +17,12 @@ public class Block {
 	//slack space if we have a large block size with small files.
 	public static final int BLOCK_SIZE = 64;
 	private char[] data;
-	private int endOfDataIndex = 0;
+	private int nextFreeDataIndex = 0; //Index for the next free position in the data array. For empty blocks this is 0, for filled blocks this is 64 (although index 64 does not exist).
+	
+	public Block()
+	{
+		this.data = new char[BLOCK_SIZE];
+	}
 	
 	public Block(String input)
 	{
@@ -26,13 +31,14 @@ public class Block {
 	}
 
 	/**
-	 * Returns all of the data in the block. For half full blocks it stops at the end of our data, to avoid getting empty array
-	 * elements that we have not used. 
+	 * Returns all of the data in the block. For half full blocks it stops at the end of our data,
+	 * to avoid getting empty array elements that we have not used. 
 	 * @return Returns the data in the block as a String.
 	 */
 	public String getData()
 	{
-		return String.valueOf(data, 0, endOfDataIndex);
+		//Last parameter in valueOf is the count, thus an index for the next free data also serves as length.
+		return String.valueOf(data, 0, nextFreeDataIndex);
 	}
 
 	/**
@@ -44,21 +50,25 @@ public class Block {
 		char [] inputArr = input.toCharArray();
 	
 		//Copy each char from our input data array to our storage array.
-		//Begin from the endOfDataIndex pointer so we can add to half full blocks. It's up to other classes to make sure we send in appropriate amount of data.
+		//Begin from the nextFreeDataIndex pointer so we can add to half full blocks. It's up to other classes to make sure we send in appropriate amount of data.
 		for (int i = 0; i < inputArr.length; i++)
 		{
-			data[endOfDataIndex] = inputArr[i];
-			endOfDataIndex++;
+			data[nextFreeDataIndex] = inputArr[i];
+			nextFreeDataIndex++;
 		}
 	}
 
 	/**
 	 * Gets the number of characters in the block.
-	 * @return An the number of characters as an int.
+	 * @return The number of characters.
 	 */
 	public int getSize()
 	{
-		return endOfDataIndex;
+		return nextFreeDataIndex;
 	}
 
+	public int getFreeSpace()
+	{
+		return BLOCK_SIZE - nextFreeDataIndex;
+	}
 }
