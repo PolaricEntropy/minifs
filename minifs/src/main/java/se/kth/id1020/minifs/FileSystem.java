@@ -10,7 +10,7 @@ package se.kth.id1020.minifs;
  */
 public interface FileSystem {
 
-	public static final String pathDelimiter = "/";
+	public String pathDelimiter = "/";
 
 	public void mkdir(String path);
 
