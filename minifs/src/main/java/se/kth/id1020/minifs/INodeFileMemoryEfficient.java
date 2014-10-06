@@ -26,31 +26,48 @@ public class INodeFileMemoryEfficient extends INode {
 	 * @param data Data to be added to this file.
 	 */
 	public void addData(String data)
-	{
-		//TODO: Start appending from last used block.
+	{					
+		Block currBlock;
 		
-		//Blocks have a fixed size.
-		int startIndex = 0, endIndex = Block.BLOCK_SIZE-1;
-		
-		//If our data is shorter or equal to our block size, then all fits in one block.
-		if (data.length() <= Block.BLOCK_SIZE)
-			blocks.add(new Block(data));
+		//If we have blocks for this file, find the last one to start adding to that. If not then just use a new empty block.
+		if (blocks.size() > 0)
+			currBlock = blocks.get(blocks.size()-1);
 		else
 		{
-			//While "endIndex" is smaller or equal to the index of the last char in the string we should be doing this since we are not done with the entire string.
+			currBlock = new Block();
+			blocks.add(currBlock);
+		}
+			
+		//If we start from an empty block endIndex would be BLOCK_SIZE-1 ex. 63.
+		int startIndex = 0, endIndex = currBlock.getFreeSpace()-1;
+		
+		//If our data is shorter or equal to our current block's remaining space, then all fits in one block.
+		if (data.length() <= currBlock.getFreeSpace())
+			currBlock.setData(data);
+		else
+		{
+			//While endIndex is smaller or equal to the index of the last char in the string we should be doing this since we are not done with the entire string.
 			while (endIndex <= data.length()-1)
 			{
-				//endIndex is exclusive so we need to add 1 to it so we get that last char.
-				blocks.add(new Block(data.substring(startIndex, endIndex+1)));
-				startIndex += Block.BLOCK_SIZE; //Offset the start. Don't do -1 since we've already included that char in the previous line.
-				endIndex += Block.BLOCK_SIZE-1; //Offset the end.
+				//We assume we already have a block to add data to, either a partially filled or a fresh one.
+				//endIndex in substring is exclusive so we need to add 1 to it so we get that last char.
+				currBlock.setData(data.substring(startIndex, endIndex+1));
+				
+				//Advance indexes for the next round.
+				startIndex += endIndex +1; //Start at the next char after we left off.
+				endIndex = startIndex + Block.BLOCK_SIZE-1; //Increment with a block of data.
+				
+				//Create a new block and add it to the list for the next round.
+				currBlock = new Block();
+				blocks.add(currBlock);
 				
 				//Check if we moved past our end of the data.
 				if (endIndex >= data.length()-1)
 				{
-					//end index is exclusive so no need to do -1.
+					//endIndex in substring is exclusive so no need to do -1 there, and setting endIndex to data.length() will cause the while loop to stop running.
 					endIndex = data.length();
-					blocks.add(new Block(data.substring(startIndex, endIndex)));
+					currBlock.setData(data.substring(startIndex, endIndex));
+					//No need to declare a new block since the while loop won't run more after this.
 				}
 			}
 		}
