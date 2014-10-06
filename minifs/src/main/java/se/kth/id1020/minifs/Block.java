@@ -50,8 +50,9 @@ public class Block {
 		char [] inputArr = input.toCharArray();
 	
 		//Copy each char from our input data array to our storage array.
-		//Begin from the nextFreeDataIndex pointer so we can add to half full blocks. It's up to other classes to make sure we send in appropriate amount of data.
-		for (int i = 0; i < inputArr.length; i++)
+		//Begin from the nextFreeDataIndex pointer so we can add to half full blocks.
+		//It should be up to other classes to supply the correct amount of data, but we have a check non the less (not that buffer overruns can happen in Java due to coder error anyway).
+		for (int i = 0; i < inputArr.length && nextFreeDataIndex != BLOCK_SIZE; i++)
 		{
 			data[nextFreeDataIndex] = inputArr[i];
 			nextFreeDataIndex++;
