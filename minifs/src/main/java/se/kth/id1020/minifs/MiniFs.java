@@ -11,11 +11,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-//Please note that some of the code in this assignment could be more optimized,
-//streamlined and standardized. However due to time constraints such refactoring
-//will have to wait, the code is still fully functional.
-
-
  /**
   * Mini file system that implements some basic file system operations.
   * @author Björn Ehrby
@@ -24,7 +19,7 @@ public class MiniFs implements FileSystem {
 	
 	private final INodeDirectory root;
 	private INodeDirectory workingDir; //We want to support state in form of a working directory.
-	private String version = "1.0";
+	private String version = "1.1";
 	
 	/**
 	 * Constructor. Creates a new MiniFs object with a root directory.
