@@ -12,6 +12,10 @@ Supported features would be:
 * du
 * append
 * cat
-* rm [-rf]
+* rm 
+* ln
+* find
+* findc
+* cycle
 
 I decided to also add support for a working directory and relative paths, thus my filesystem also supports cd and pwd.
