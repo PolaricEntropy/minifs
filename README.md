@@ -12,7 +12,7 @@ Supported features would be:
 * du
 * append
 * cat
-* rm 
+* rm [-rf]
 * ln
 * find
 * findc
