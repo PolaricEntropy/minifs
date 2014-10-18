@@ -214,6 +214,26 @@ public class MiniFs implements FileSystem {
 		node.getParent().getChildren().remove(node);
 	}
 	
+	public String ln(String SrcPath, String DestPath) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public String find(String criteria) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public String findc(String criteria) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public String cycles() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	/**
 	 * Gets the disk usage of all the directories and files in the specified directory. This method recursively searches all sub-directories of a given directory.
 	 * @param dir The directory to begin searching from.
@@ -456,5 +476,4 @@ public class MiniFs implements FileSystem {
 		return cur;
 		
 	}
-
 }

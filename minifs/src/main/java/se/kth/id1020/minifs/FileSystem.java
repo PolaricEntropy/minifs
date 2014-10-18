@@ -31,4 +31,12 @@ public interface FileSystem {
 	public String ver();
 
 	public void rm(String path, String param);
+	
+	public String ln(String SrcPath, String DestPath);
+	
+	public String find(String criteria);
+	
+	public String findc(String criteria);
+	
+	public String cycles();
 }

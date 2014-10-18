@@ -16,130 +16,154 @@ import java.io.File;
  */
 public class Driver {
 
-  static String NEW_LINE = System.getProperty("line.separator");
-  static boolean bShouldExit = false;
-  
-  public static void main(String[] args) {
-    FileSystem fs = new MiniFs();
-    
-    while (bShouldExit == false)
-    	StdOut.println(processCmd(fs, StdIn.readLine()));
-    
-    //String fileResult = processCmdFile(fs, args[0]);
-    //StdOut.println(fileResult);
-  }
+	static String NEW_LINE = System.getProperty("line.separator");
+	static boolean bShouldExit = false;
 
-  public static String processCmdFile(FileSystem fs, String path) {
-    In input = new In(new File(path));
-    StringBuilder builder = new StringBuilder();
+	public static void main(String[] args) {
+		FileSystem fs = new MiniFs();
 
-    while (!input.isEmpty()) {
-      String line = input.readLine().trim();
-      builder.append(">> " + line).append(NEW_LINE);
-      String result = processCmd(fs, line);
-      if (result != null) {
-        builder.append(result).append(NEW_LINE);
-      }
-    }
-    return builder.toString();
-  }
-  
-  public static String processCmd(FileSystem fs, String line)
-  {
-	  String[] comp = line.split(" ", 2);
-	  String cmd = comp[0].trim().toLowerCase();
-	  
-	  String result = "";
-	  
-	  try
-	  {	  
-		  if (cmd.equals("mkdir")){
-			  if (comp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. First argument of mkdir can not be empty.");
-			  
-			  fs.mkdir(comp[1].trim());
-		  } else if (cmd.equals("touch")) {
-			  if (comp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. First argument of touch can not be empty.");
-			  
-			  fs.touch(comp[1].trim());
-		  } else if (cmd.equals("append")) {
-			  if (comp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. First argument of append can not be empty.");
-			  
-			  String[] subComp = comp[1].split(" ", 2);
-			  
-			  if (subComp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. Second argument of append can not be empty.");
-			  
-			  fs.append(subComp[0].trim(), subComp[1].trim());
-		  } else if (cmd.equals("ls")) {
-			  
-			  if (comp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. First argument of ls can not be empty.");
-			  
-			  String[] subComp = comp[1].split(" ", 2);
-			  String param = subComp[0].trim().toLowerCase();
-			  String path;
-			  
-			  //If second argument is empty, send an empty path to the function.
-			  if (subComp.length <= 1)
-				  path = "";
-			  else
-				  path = subComp[1].trim();
-			  
-			  result = fs.ls(path, param);
-		  } else if (cmd.equals("rm")) {
-			  
-			  if (comp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. First argument of rm can not be empty.");
-			  
-			  String[] subComp = comp[1].split(" ", 2);
-			  String param = subComp[0].trim().toLowerCase();
-			  String path;
-			  
-			  //If second argument is empty that means that the first argument was the was the path.
-			  if (subComp.length <= 1)
-			  {
-				  path = subComp[0].trim();
-				  param = "";
-			  }
-			  else
-				  path = subComp[1].trim();
-			  
-			  fs.rm(path, param);
-		  } else if (cmd.equals("du")) {
-			  if (comp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. First argument of du can not be empty.");
-			  
-			  result = fs.du(comp[1].trim());
-		  } else if (cmd.equals("cat")) {
-			  if (comp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. First argument of cat can not be empty.");
-			  
-			  result = fs.cat(comp[1].trim());
-		  } else if (cmd.equals("pwd")) {
-			  result = fs.pwd();
-		  } else if (cmd.equals("cd")) {
-			  if (comp.length <= 1)
-				  throw new IllegalArgumentException("Syntax error. First argument of cd can not be empty.");
-			  
-			  fs.cd(comp[1].trim());
-		  } else if (cmd.equals("ver")) {
-			  result = fs.ver();
-		  } else if (cmd.equals("exit")) {
-			  bShouldExit = true;
-		  } else {
-			  result = cmd + ": command not found";
-		  }
+		while (bShouldExit == false)
+			StdOut.println(processCmd(fs, StdIn.readLine()));
+
+		//String fileResult = processCmdFile(fs, args[0]);
+		//StdOut.println(fileResult);
 	}
-	catch (IllegalArgumentException ex)
-	{
-    	result = ex.getMessage();
-    }
-    
-    
-	return result;
-  }
-  
+
+	public static String processCmdFile(FileSystem fs, String path) {
+		In input = new In(new File(path));
+		StringBuilder builder = new StringBuilder();
+
+		while (!input.isEmpty()) {
+			String line = input.readLine().trim();
+			builder.append(">> " + line).append(NEW_LINE);
+			String result = processCmd(fs, line);
+			if (result != null) {
+				builder.append(result).append(NEW_LINE);
+			}
+		}
+		return builder.toString();
+	}
+
+	public static String processCmd(FileSystem fs, String line) {
+		String[] comp = line.split(" ", 2);
+		String cmd = comp[0].trim().toLowerCase();
+		String params = "";
+		String result = "";
+		
+		//If we have params then lowercase them.
+		if (comp.length > 1)
+			params = comp[1].toLowerCase();
+
+		try
+		{	  
+			if (cmd.equals("mkdir"))
+				fs.mkdir(processOneArg(params));
+			else if (cmd.equals("touch"))
+				fs.touch(processOneArg(params));
+			else if (cmd.equals("append"))
+			{
+				String[] subComp = processTwoArgs(params);
+				fs.append(subComp[0], subComp[1]);
+			}
+			else if (cmd.equals("ls"))
+			{
+				//Check for params in general.
+				params = processOneArg(params);
+
+				String[] subComp = params.split(" ", 2);
+				String paramLS = subComp[0].trim();
+				String path;
+
+				//If second argument is empty, send an empty path to the function.
+				if (subComp.length <= 1)
+					path = "";
+				else
+					path = subComp[1].trim();
+
+				result = fs.ls(path, paramLS);
+			}
+			else if (cmd.equals("rm"))
+			{  
+				//Check for params in general.
+				params = processOneArg(params);
+
+				String[] subComp = params.split(" ", 2);
+				String paramRM = subComp[0].trim();
+				String path;
+
+				//If second argument is empty that means that the first argument was the was the path.
+				if (subComp.length <= 1)
+				{
+					path = paramRM;
+					paramRM = "";
+				}
+				else
+					path = subComp[1].trim();
+
+				fs.rm(path, paramRM);
+			}
+			else if (cmd.equals("du"))
+				result = fs.du(processOneArg(params));
+			else if (cmd.equals("cat"))
+				result = fs.cat(processOneArg(params));
+			else if (cmd.equals("pwd"))
+				result = fs.pwd();
+			else if (cmd.equals("cd"))
+				fs.cd(processOneArg(params));
+			else if (cmd.equals("ver"))
+				result = fs.ver();
+			else if (cmd.equals("exit"))
+				bShouldExit = true;  
+			else if (cmd.equals("ln"))
+			{
+				String[] subComp = processTwoArgs(params);
+				fs.ln(subComp[0], subComp[1]);
+			}
+			else if (cmd.equals("find"))
+				result = fs.find(processOneArg(params));
+			else if (cmd.equals("findc"))
+				result = fs.findc(processOneArg(params));
+			else if (cmd.equals("cycles"))
+				result = fs.cycles();
+			else
+				result = cmd + ": command not found";
+		}
+		catch (FirstArgumentMissingException ex)
+		{
+			result = String.format("Syntax error. First argument of %s can not be empty.", cmd);
+		}
+		catch (SecondArgumentMissingException ex)
+		{
+			result = String.format("Syntax error. Second argument of %s can not be empty.", cmd);
+		}
+		catch (IllegalArgumentException ex)
+		{
+			result = ex.getMessage();
+		}
+
+		return result;
+	}
+
+	private static String processOneArg(String param) {
+		if (param.isEmpty())
+			throw new FirstArgumentMissingException();
+
+		return param.trim();
+	}
+	
+	private static String[] processTwoArgs(String params) {		
+		if (params.isEmpty())
+			throw new FirstArgumentMissingException();
+
+		String[] subComp = params.split(" ", 2);
+
+		if (subComp.length <= 1)
+			throw new SecondArgumentMissingException();
+		
+		subComp[0] = subComp[0].trim();
+		subComp[1] = subComp[1].trim();
+		
+		return subComp;
+	}
+	
 }
