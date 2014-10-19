@@ -210,24 +210,114 @@ public class MiniFs implements FileSystem {
 		node.getParent().getChildren().remove(node);
 	}
 	
-	public String ln(String SrcPath, String DestPath) {
-		// TODO Auto-generated method stub
+	public String ln(String SrcPath, String DestPath)
+	{
 		return null;
 	}
 
-	public String find(String criteria) {
-		// TODO Auto-generated method stub
-		return null;
+	public String find(String criteria)
+	{
+		StringBuilder sb = new StringBuilder();
+		
+		findInDir(root, criteria, sb, false);
+		
+		return sb.toString();
 	}
 
-	public String findc(String criteria) {
-		// TODO Auto-generated method stub
-		return null;
+	public String findc(String criteria)
+	{
+		StringBuilder sb = new StringBuilder();
+		
+		findInDir(root, criteria, sb, true);
+		
+		return sb.toString();
 	}
 
-	public String cycles() {
-		// TODO Auto-generated method stub
+	public String cycles()
+	{
 		return null;
+	}
+	
+	
+	private void findInDir(INodeDirectory dir, String criteria, StringBuilder sb, boolean useWildcards)
+	{
+		List<INode> children = dir.getChildren();
+		
+		for (INode child : children)
+		{
+			String name = child.getName();
+			
+			if (criteria.contains("*"))
+			{
+				if (useWildcards)
+				{
+					if (matchesWildcard(name, criteria))
+					{
+						sb.append(getPath(child));
+						sb.append("\n");
+					}
+				}
+			}
+			else
+			{
+				if (name.equals(criteria))
+				{
+					sb.append(getPath(child));
+					sb.append("\n");
+				}
+			}
+			
+		}
+		
+		for (INode child : children)
+		{
+			if (child instanceof INodeDirectory)
+				findInDir((INodeDirectory) child, criteria, sb, useWildcards);
+		}
+	}
+	
+	private boolean matchesWildcard (String input, String criteria)
+	{
+		//Contains just the wildcard.
+		if (criteria.length() == 1)
+			return true;
+		
+		String start =  criteria.substring(0, criteria.indexOf("*"));
+		String ending = criteria.substring(criteria.lastIndexOf("*")+1);
+		
+		
+		
+//		String[] searchStrings = criteria.split("*"); 
+//		
+//		if (searchStrings.length == 2)
+//		{
+//			
+//		}
+		
+		if (!start.isEmpty() && ending.isEmpty())
+		{
+			if (input.startsWith(start))
+				return true;
+			else
+				return false;
+		}
+		else if (!start.isEmpty() && !ending.isEmpty())
+		{
+			if (input.startsWith(start) && input.endsWith(ending))
+				return true;
+			else
+				return false;
+		}
+		else if (start.isEmpty() && !ending.isEmpty())
+		{
+			if (input.endsWith(ending))
+				return true;
+			else
+				return false;
+		}
+		else //If both are empty. Shouldn't be possible but either way it's not equal to the name.
+			return false;
+		
 	}
 	
 	/**
@@ -238,7 +328,6 @@ public class MiniFs implements FileSystem {
 	 */
 	private int diskUsage(INodeDirectory dir, StringBuilder sb)
 	{
-		//Children and total size of the current directory.
 		List<INode> children = dir.getChildren();
 		int dirTotalSize = 0;
 		

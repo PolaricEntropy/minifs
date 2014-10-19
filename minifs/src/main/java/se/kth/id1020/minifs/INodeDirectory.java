@@ -10,6 +10,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * Represents a directory entity.
+ * @author Björn Ehrby
+ *
+ */
 public class INodeDirectory extends INode {
 
 	private HashMap<String, INode> children;
@@ -18,12 +23,13 @@ public class INodeDirectory extends INode {
 	{
 		super(name, parent);
 		children = new HashMap<String, INode>();
-    }
-	
+	}
 	
 	public List<INode> getChildren()
 	{
-		return (List<INode>) children.values();
+		List<INode> output = new ArrayList<INode>();
+		output.addAll(children.values());
+		return output;
 	}
 	
 	public INode getChild(String name)
@@ -33,27 +39,25 @@ public class INodeDirectory extends INode {
 	
 	public void createDirectory(String name) throws IllegalArgumentException
 	{
-		//Create a new directory.
 		INodeDirectory newdir = new INodeDirectory(name, this);
 		
-		//Make sure we don't have a child with this name before.
+		//Check for INodes with this name, no dupe allowed.
 		if (getChild(name) == null)
 			children.put(name, newdir);
 		else
-			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
+			throw new IllegalArgumentException(String.format("A directory or file named %s does already exist.", name));	
 		
 	}
 	
 	public void createFile(String name)
 	{
-		//Create a new directory.
 		INodeFile newfile = new INodeFile(name, this);
 		
-		//Make sure we don't have a child with this name before.
+		//Check for INodes with this name, no dupe allowed.
 		if (getChild(name) == null)
 			children.put(name, newfile);
 		else
-			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
+			throw new IllegalArgumentException(String.format("A directory or file named %s does already exist.", name));	
 	}
 	
 	public List<INode> sortChildrenByTime()
@@ -77,15 +81,18 @@ public class INodeDirectory extends INode {
 	}
 		
 	
-    private void quickSort(ArrayList<INode> input, int low, int high, Comparator<INode> comp) {
-        if(low >= high) return;
+    private void quickSort(ArrayList<INode> input, int low, int high, Comparator<INode> comp)
+    {
+        if(low >= high)
+        	return;
         
         int pivot = partition(input, low, high, comp);
         quickSort(input, low, pivot-1, comp);
         quickSort(input, pivot+1, high, comp);
     }
 
-    private int partition(ArrayList<INode> input, int low, int high, Comparator<INode> comp) {
+    private int partition(ArrayList<INode> input, int low, int high, Comparator<INode> comp)
+    {
         int i = low + 1;
         int j = high;
         
@@ -106,7 +113,8 @@ public class INodeDirectory extends INode {
         return j;
     }
 
-    private void exchange(ArrayList<INode> a, int i, int j) {
+    private void exchange(ArrayList<INode> a, int i, int j)
+    {
         INode tmp = a.get(i);
         a.set(i,a.get(j));
         a.set(j, tmp);

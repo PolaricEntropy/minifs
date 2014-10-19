@@ -40,18 +40,14 @@ public abstract class INode{
 
 	public void setName(String name)
 	{
-		//Other functions calling this function should sanitize user supplied input, but just in case,
-		//check for illegal characters.
+		//Other functions calling this function should sanitize user supplied input,
+		//but just in case check for illegal characters.
 		if (name.contains(FileSystem.pathDelimiter) == false)
 			this.name = name;
 		else
 			throw new IllegalArgumentException("The filename or directory name syntax is incorrect.");
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
 	public INodeDirectory getParent()
 	{
 		return parent;

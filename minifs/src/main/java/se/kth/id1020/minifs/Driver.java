@@ -19,32 +19,39 @@ public class Driver {
 	static String NEW_LINE = System.getProperty("line.separator");
 	static boolean bShouldExit = false;
 
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
 		FileSystem fs = new MiniFs();
 
 		while (bShouldExit == false)
 			StdOut.println(processCmd(fs, StdIn.readLine()));
-
-		//String fileResult = processCmdFile(fs, args[0]);
-		//StdOut.println(fileResult);
 	}
 
-	public static String processCmdFile(FileSystem fs, String path) {
+	public static String processCmdFile(FileSystem fs, String path)
+	{
 		In input = new In(new File(path));
-		StringBuilder builder = new StringBuilder();
+		StringBuilder sb = new StringBuilder();
 
-		while (!input.isEmpty()) {
-			String line = input.readLine().trim();
-			builder.append(">> " + line).append(NEW_LINE);
-			String result = processCmd(fs, line);
-			if (result != null) {
-				builder.append(result).append(NEW_LINE);
+		if (input.exists())
+		{
+			while (!input.isEmpty())
+			{
+				String line = input.readLine().trim();
+				sb.append(">> " + line).append(NEW_LINE);
+				String result = processCmd(fs, line);
+				
+				if (result != null)
+					sb.append(result).append(NEW_LINE);
 			}
+			
+			input.close();
 		}
-		return builder.toString();
+		
+		return sb.toString();
 	}
 
-	public static String processCmd(FileSystem fs, String line) {
+	public static String processCmd(FileSystem fs, String line)
+	{
 		String[] comp = line.split(" ", 2);
 		String cmd = comp[0].trim().toLowerCase();
 		String params = "";
@@ -127,6 +134,8 @@ public class Driver {
 				result = fs.findc(processOneArg(params));
 			else if (cmd.equals("cycles"))
 				result = fs.cycles();
+			else if (cmd.equals("exec"))
+				result = processCmdFile(fs, processOneArg(params));
 			else
 				result = cmd + ": command not found";
 		}
@@ -146,14 +155,16 @@ public class Driver {
 		return result;
 	}
 
-	private static String processOneArg(String param) {
+	private static String processOneArg(String param)
+	{
 		if (param.isEmpty())
 			throw new FirstArgumentMissingException();
 
 		return param.trim();
 	}
 
-	private static String[] processTwoArgs(String params) {		
+	private static String[] processTwoArgs(String params)
+	{		
 		if (params.isEmpty())
 			throw new FirstArgumentMissingException();
 
@@ -167,5 +178,4 @@ public class Driver {
 
 		return subComp;
 	}
-
 }
