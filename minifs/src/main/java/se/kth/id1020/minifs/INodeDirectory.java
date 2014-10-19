@@ -7,32 +7,28 @@ package se.kth.id1020.minifs;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 
 public class INodeDirectory extends INode {
 
-	private ArrayList<INode> children;
+	private HashMap<String, INode> children;
 	
 	public INodeDirectory(String name, INodeDirectory parent)
 	{
 		super(name, parent);
-		children = new ArrayList<INode>();
+		children = new HashMap<String, INode>();
     }
 	
 	
-	public ArrayList<INode> getChildren()
+	public List<INode> getChildren()
 	{
-		return children;
+		return (List<INode>) children.values();
 	}
 	
 	public INode getChild(String name)
 	{
-		for (INode i : children)
-		{
-			if (i.getName().equals(name))
-				return i;
-		}
-		
-		return null;
+		return children.get(name);	
 	}
 	
 	public void createDirectory(String name) throws IllegalArgumentException
@@ -42,7 +38,7 @@ public class INodeDirectory extends INode {
 		
 		//Make sure we don't have a child with this name before.
 		if (getChild(name) == null)
-			children.add(newdir);
+			children.put(name, newdir);
 		else
 			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
 		
@@ -55,19 +51,29 @@ public class INodeDirectory extends INode {
 		
 		//Make sure we don't have a child with this name before.
 		if (getChild(name) == null)
-			children.add(newfile);
+			children.put(name, newfile);
 		else
 			throw new IllegalArgumentException("A directory or file named " + name + " does already exist.");	
 	}
 	
-	public void sortChildrenByTime()
+	public List<INode> sortChildrenByTime()
 	{		
-		quickSort(children, 0, children.size()-1, new compareByTime());
+		ArrayList<INode> output = new ArrayList<INode>();
+		output.addAll(children.values());
+		
+		quickSort(output, 0, children.size()-1, new compareByTime());
+		
+		return output;
 	}
 	
-	public void sortChildrenByName()
-	{		
-		quickSort(children, 0, children.size()-1, new compareByName());
+	public List<INode> sortChildrenByName()
+	{	
+		ArrayList<INode> output = new ArrayList<INode>();
+		output.addAll(children.values());
+		
+		quickSort(output, 0, children.size()-1, new compareByName());
+		
+		return output;
 	}
 		
 	

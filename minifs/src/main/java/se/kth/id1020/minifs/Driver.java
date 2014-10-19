@@ -49,7 +49,7 @@ public class Driver {
 		String cmd = comp[0].trim().toLowerCase();
 		String params = "";
 		String result = "";
-		
+
 		//If we have params then lowercase them.
 		if (comp.length > 1)
 			params = comp[1].toLowerCase();
@@ -110,6 +110,8 @@ public class Driver {
 				result = fs.pwd();
 			else if (cmd.equals("cd"))
 				fs.cd(processOneArg(params));
+			else if (cmd.equals("cd.") || cmd.equals("cd.."))
+				fs.cd(cmd.substring(2));
 			else if (cmd.equals("ver"))
 				result = fs.ver();
 			else if (cmd.equals("exit"))
@@ -150,7 +152,7 @@ public class Driver {
 
 		return param.trim();
 	}
-	
+
 	private static String[] processTwoArgs(String params) {		
 		if (params.isEmpty())
 			throw new FirstArgumentMissingException();
@@ -159,11 +161,11 @@ public class Driver {
 
 		if (subComp.length <= 1)
 			throw new SecondArgumentMissingException();
-		
+
 		subComp[0] = subComp[0].trim();
 		subComp[1] = subComp[1].trim();
-		
+
 		return subComp;
 	}
-	
+
 }
