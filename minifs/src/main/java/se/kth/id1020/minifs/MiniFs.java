@@ -75,7 +75,7 @@ public class MiniFs implements FileSystem {
 	 */
 	public void append(String path, String data)
 	{
-		INode node = findNode(path);
+		INode node = findNode(path, true);
 		
 		if (node instanceof INodeFile)
 		{
@@ -140,12 +140,11 @@ public class MiniFs implements FileSystem {
 	 */
 	public String cat(String path)
 	{
-		INode node = findNode(path);
+		INode node = findNode(path, true);
 		
 		if (node instanceof INodeFile)
 		{
-			INodeFile file = (INodeFile) node;
-			return file.getData();
+			return ((INodeFile) node).getData();
 		}
 		else //Catches both if node is null or is an INodeDirectory.
 			throw new IllegalArgumentException(String.format("The file '%s' does not exist.",path));
@@ -189,8 +188,9 @@ public class MiniFs implements FileSystem {
 	 * @param If no parameter is specified and if the object we are going to remove is a directory, it must be empty. If the parameter -rf is supplied this check is skipped.
 	 */
 	public void rm(String path, String param)
-	{		
-		INode node = findNode(path);
+	{	
+		//We don't want to follow symlinks, cause then we can't ever remove them.
+		INode node = findNode(path, false);
 		
 		if (node == null)
 			throw new IllegalArgumentException(String.format("The file/directory '%s' does not exist.", path));
@@ -207,14 +207,27 @@ public class MiniFs implements FileSystem {
 		}
 		else if(!param.trim().equals("-rf")) //If param is NOT "-rf". The "-rf" param just skips the check above.
 			throw new IllegalArgumentException(String.format("The parameter '%s' is not supported by rm.", param));
+	
 		
-		//Find the parent, remove the child from the parent's children.
-		node.getParent().getChildren().remove(node);
+		node.getParent().removeNode(node.getName());
 	}
 	
 	public String ln(String SrcPath, String DestPath)
 	{
-		return null;
+		//Need to separate path and name from the argument.
+		String[] values = SeparatePath(SrcPath);
+		
+		//Find the source dir.
+		INodeDirectory srcDir = findDir(values[1]);
+		
+		//Find the Destination.
+		INode dest = findNode(DestPath, true);
+		
+		srcDir.createSymlink(values[0], dest);
+		
+		//TODO: Cycle check if the new symlink has created a cycle.
+		
+		return String.format("Symbolic link created: %s --> %s", SrcPath, DestPath);
 	}
 
 	public String find(String criteria)
@@ -411,8 +424,8 @@ public class MiniFs implements FileSystem {
 			accessTime = new Date(dir.getAccessTime());
 			
 			//Add our special folders to the list.
-			sb.append(String.format("%s   <DIR>	.\n", formatter.format(accessTime)));
-			sb.append(String.format("%s   <DIR>	..\n", formatter.format(accessTime)));
+			sb.append(String.format("%s   <DIR>		.\n", formatter.format(accessTime)));
+			sb.append(String.format("%s   <DIR>		..\n", formatter.format(accessTime)));
 			directories += 2;
 		}
 		
@@ -426,15 +439,32 @@ public class MiniFs implements FileSystem {
 			//Check if it's a dir.
 			if (i instanceof INodeDirectory)
 			{
-				sb.append("  <DIR>	");
+				sb.append("  <DIR>		");
 				directories++;
 			}
-			else
+			else if (i instanceof INodeSymbolicLink)
 			{
-				sb.append("	");
+				INodeSymbolicLink symlink = (INodeSymbolicLink) i;
+				INode target = symlink.getTarget();
+				
+				if (target instanceof INodeDirectory)
+				{
+					sb.append("  <SYMLINKD>	");
+					directories++;
+				}
+				else if (target instanceof INodeFile || target instanceof INodeSymbolicLink)
+				{
+					sb.append("  <SYMLINK>	");
+					files++;
+				}
+			}
+			else if (i instanceof INodeFile)
+			{
+				sb.append("  		");
 				files++;
 			}
 			
+			//TODO: Print path to target for symlink like cmd.
 			sb.append(String.format("%s\n", i.getName()));
 		}
 		
@@ -472,21 +502,38 @@ public class MiniFs implements FileSystem {
 	 * @param path Absolute or relative path to the node we should find.
 	 * @return The INode corresponding to the path.
 	 */
-	private INode findNode(String path)
+	private INode findNode(String path, boolean traverseSymlinks)
 	{
 		//Separate the path into its components, path and node name.
 		String[] values = SeparatePath(path);
 		
-		//Find the directory in the path, so we can find the node.
+		//Find the directory, so we can find the node. If we are following a symlink we will follow it to the correct folder.
 		INodeDirectory dir = findDir(values[1]);
 		
 		if (dir == null)
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", values[1]));
 		
-		//Finds our node.
 		INode child = dir.getChild(values[0]);
 		
-		//Do null and type checks in the calling functions.
+		if (child == null)
+			throw new IllegalArgumentException(String.format("The file/directory '%s' does not exist.", values[0]));
+		
+		if (child instanceof INodeSymbolicLink && traverseSymlinks)
+		{
+			INodeSymbolicLink symlink = (INodeSymbolicLink) child;
+			INode target = symlink.getTarget();
+			
+			//We will break out of this, I promise! We can't point to symlinks in all eternity without having a cycle.
+			while(target instanceof INodeSymbolicLink)
+			{
+				//Follow symlink.
+				symlink = (INodeSymbolicLink) target;
+				target = symlink.getTarget();
+			}
+			
+			child = target;
+		}
+		
 		return child;
 	}
 	
@@ -553,7 +600,26 @@ public class MiniFs implements FileSystem {
 			//If it's a directory we'll update cur to search for the text thing.
 			if (result instanceof INodeDirectory)
 				cur = (INodeDirectory)result;
-			else //We found a file, stop and return null.
+			else if (result instanceof INodeSymbolicLink)
+			{
+				INodeSymbolicLink symlink = (INodeSymbolicLink) result;
+				INode target = symlink.getTarget();
+				
+				//We will break out of this, I promise! We can't point to symlinks in all eternity without having a cycle.
+				while(target instanceof INodeSymbolicLink)
+				{
+					//Follow symlink.
+					symlink = (INodeSymbolicLink) target;
+					target = symlink.getTarget();
+				}
+				
+				if (target instanceof INodeDirectory)
+					cur = (INodeDirectory) target;
+				else if (target instanceof INodeFile) //Points to a normal file.
+					return null;
+			}
+			else if (result instanceof INodeFile)
+				//We found a file, stop and return null.
 				return null;
 		
 		}

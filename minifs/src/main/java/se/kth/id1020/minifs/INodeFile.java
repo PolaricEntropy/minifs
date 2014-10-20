@@ -11,7 +11,7 @@ import java.util.ArrayList;
 public class INodeFile extends INode {
 
 	//ArrayList takes constant time for add instructions. 
-	private ArrayList<Block> m_blocks;
+	ArrayList<Block> m_blocks;
 	
 	public INodeFile(String name, INodeDirectory parent)
 	{

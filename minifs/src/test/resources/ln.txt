@@ -1,0 +1,3 @@
+mkdir home/bjorn
+mkdir home/olof
+ln home/bjorn/test home/olof

@@ -6,7 +6,6 @@
 package se.kth.id1020.minifs;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
@@ -58,6 +57,40 @@ public class INodeDirectory extends INode {
 		addChild(name, new INodeFile(name, this));	
 	}
 	
+	public void createSymlink(String name, INode dest)
+	{
+		addChild(name, new INodeSymbolicLink(name, this, dest));
+	}
+	
+	public void removeNode (String name)
+	{
+		m_children.remove(name);
+	}
+	
+	public List<INode> sortChildrenByTime()
+	{		
+		ArrayList<INode> output = new ArrayList<INode>();
+		output.addAll(m_children.values());
+		
+		QuickSort<INode> qs = new QuickSort<INode>();
+		
+		qs.quickSort(output, 0, m_children.size()-1, new compareByTime());
+		
+		return output;
+	}
+	
+	public List<INode> sortChildrenByName()
+	{	
+		ArrayList<INode> output = new ArrayList<INode>();
+		output.addAll(m_children.values());
+		
+		QuickSort<INode> qs = new QuickSort<INode>();
+		
+		qs.quickSort(output, 0, m_children.size()-1, new compareByName());
+		
+		return output;
+	}
+	
 	private void addChild(String name, INode child)
 	{
 		if (m_WriteProtected)
@@ -69,63 +102,5 @@ public class INodeDirectory extends INode {
 		else
 			throw new IllegalArgumentException(String.format("A directory or file named '%s' does already exist.", name));	
 	}
-	
-	public List<INode> sortChildrenByTime()
-	{		
-		ArrayList<INode> output = new ArrayList<INode>();
-		output.addAll(m_children.values());
-		
-		quickSort(output, 0, m_children.size()-1, new compareByTime());
-		
-		return output;
-	}
-	
-	public List<INode> sortChildrenByName()
-	{	
-		ArrayList<INode> output = new ArrayList<INode>();
-		output.addAll(m_children.values());
-		
-		quickSort(output, 0, m_children.size()-1, new compareByName());
-		
-		return output;
-	}
-	
-    private void quickSort(ArrayList<INode> input, int low, int high, Comparator<INode> comp)
-    {
-        if(low >= high)
-        	return;
-        
-        int pivot = partition(input, low, high, comp);
-        quickSort(input, low, pivot-1, comp);
-        quickSort(input, pivot+1, high, comp);
-    }
-
-    private int partition(ArrayList<INode> input, int low, int high, Comparator<INode> comp)
-    {
-        int i = low + 1;
-        int j = high;
-        
-        while(i <= j) {
-            if(comp.compare(input.get(i), input.get(low)) <= 0) { 
-                i++; 
-            }
-            else if(comp.compare(input.get(j), input.get(low)) > 0) { 
-                j--;
-            }
-            else if(j < i) {
-                break;
-            }
-            else
-                exchange(input, i, j);
-        }
-        exchange(input, low, j);
-        return j;
-    }
-
-    private void exchange(ArrayList<INode> a, int i, int j)
-    {
-        INode tmp = a.get(i);
-        a.set(i,a.get(j));
-        a.set(j, tmp);
-    }
+    
 }

@@ -31,15 +31,8 @@ public class Driver {
 	}
 
 	public static String processCmdFile(FileSystem fs, String param, String[] args)
-	{
-		String filepath = "";
-	
-		if (param.equals("0"))
-			filepath = args[0];
-		else
-			filepath = param;
-		
-		In input = new In(new File(filepath));
+	{		
+		In input = new In(new File(param));
 		StringBuilder sb = new StringBuilder();
 
 		if (input.exists())
@@ -136,7 +129,7 @@ public class Driver {
 			else if (cmd.equals("ln"))
 			{
 				String[] subComp = processTwoArgs(params);
-				fs.ln(subComp[0], subComp[1]);
+				result = fs.ln(subComp[0], subComp[1]);
 			}
 			else if (cmd.equals("find"))
 				result = fs.find(processOneArg(params));
