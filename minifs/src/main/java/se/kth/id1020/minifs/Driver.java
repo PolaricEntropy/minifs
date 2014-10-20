@@ -26,13 +26,20 @@ public class Driver {
 		while (bShouldExit == false)
 		{
 			StdOut.print(">> ");
-			StdOut.println(processCmd(fs, StdIn.readLine()));
+			StdOut.println(processCmd(fs, StdIn.readLine(), args));
 		}
 	}
 
-	public static String processCmdFile(FileSystem fs, String path)
+	public static String processCmdFile(FileSystem fs, String param, String[] args)
 	{
-		In input = new In(new File(path));
+		String filepath = "";
+	
+		if (param.equals("0"))
+			filepath = args[0];
+		else
+			filepath = param;
+		
+		In input = new In(new File(filepath));
 		StringBuilder sb = new StringBuilder();
 
 		if (input.exists())
@@ -41,7 +48,7 @@ public class Driver {
 			{
 				String line = input.readLine().trim();
 				sb.append(">> " + line).append(NEW_LINE);
-				String result = processCmd(fs, line);
+				String result = processCmd(fs, line, args);
 				
 				if (result != null)
 					sb.append(result).append(NEW_LINE);
@@ -53,7 +60,7 @@ public class Driver {
 		return sb.toString();
 	}
 
-	public static String processCmd(FileSystem fs, String line)
+	public static String processCmd(FileSystem fs, String line, String[] args)
 	{
 		String[] comp = line.split(" ", 2);
 		String cmd = comp[0].trim().toLowerCase();
@@ -138,7 +145,7 @@ public class Driver {
 			else if (cmd.equals("cycles"))
 				result = fs.cycles();
 			else if (cmd.equals("exec"))
-				result = processCmdFile(fs, processOneArg(params));
+				result = processCmdFile(fs, processOneArg(params), args);
 			else
 				result = cmd + ": command not found";
 		}

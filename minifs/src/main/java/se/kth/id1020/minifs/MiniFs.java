@@ -284,42 +284,46 @@ public class MiniFs implements FileSystem {
 		if (criteria.length() == 1)
 			return true;
 		
-		String start =  criteria.substring(0, criteria.indexOf("*"));
-		String ending = criteria.substring(criteria.lastIndexOf("*")+1);
+		String[] searchStrings = criteria.split("\\*");
 		
-		
-		
-//		String[] searchStrings = criteria.split("*"); 
-//		
-//		if (searchStrings.length == 2)
-//		{
-//			
-//		}
-		
-		if (!start.isEmpty() && ending.isEmpty())
+		for (int i = 0; i < searchStrings.length; i++)
 		{
-			if (input.startsWith(start))
-				return true;
-			else
-				return false;
-		}
-		else if (!start.isEmpty() && !ending.isEmpty())
-		{
-			if (input.startsWith(start) && input.endsWith(ending))
-				return true;
-			else
-				return false;
-		}
-		else if (start.isEmpty() && !ending.isEmpty())
-		{
-			if (input.endsWith(ending))
-				return true;
-			else
-				return false;
-		}
-		else //If both are empty. Shouldn't be possible but either way it's not equal to the name.
-			return false;
+			//If it's the first argument we need to check startsWith, unless first element is a star.
+			if (i == 0)
+			{
+				//If the element is empty 'criteria' started with a * ex. *test, so just skip this element.
+				if (searchStrings[i].isEmpty())
+					continue;
+				else
+				{
+					if (!input.startsWith(searchStrings[i])) //Criteria is for example stu*nt, check if we start with stu.
+						return false;
+				}
+			}
+			else if (i == searchStrings.length-1) //If last element.
+			{
+				//If our criteria ends with star we don't need to end the 
+				if (!criteria.endsWith("*"))
+				{
+					if(input.endsWith(searchStrings[i])) //Criteria is for example stu*nt, check if we end with nt.
+						return true;
+					else
+						return false;
+				}
+			}
 		
+			//Find index for the element in input.
+			int index = input.indexOf(searchStrings[i]);	
+			
+			
+			if (index == -1)
+				return false;
+			
+			//We've searched for this, so just remove that part of the string.
+			input = input.substring(index + searchStrings[i].length());
+		}
+		
+		return true;
 	}
 	
 	/**

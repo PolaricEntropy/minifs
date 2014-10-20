@@ -1,0 +1,42 @@
+mkdir /home
+mkdir /home/olof
+mkdir /home/gustaf
+mkdir /home/björn
+mkdir /home/björn/selfies
+mkdir /home/björn/selfies/naket
+touch /home/björn/selfies/naket/thisisme.jpg
+touch /home/gustaf/lol.txt
+touch /home/olof/test93.txt
+touch /home/olof/test74.txt
+touch /home/test.txt
+append /home/test.txt Hello world!
+append /home/gustaf/lol.txt Detta är en text!
+append /home/olof/test93.txt Sannerligen säger jag dig...
+append /home/hmm/nano.rtf  76849360938460834670938576897346097369087436
+touch /home/hmm/nano.rtf
+mkdir /home/hmm
+touch /home/hmm/nano.rtf
+append /home/hmm/nano.rtf 12352345435474389689367895789070890895679857
+cat /looser
+append /home/björn/labbar Går detta tro?
+cat /home/björn/labbar
+cat /home/olof/mittdokument
+mkdir /home/OlofsDocs/testmapp
+touch /home/olof/testmapp/virus.exe
+touch /home/OlofsDocs/virus2.exe
+cat /home/OlofsDocs/virus2.exe
+cat /home/olof/virus2.exe
+mkdir /home/virus2e
+findc *it*ok*t
+findc *.txt
+findc *t
+findc *x
+findc *e
+findc h*
+findc *m*e
+findc *lab*
+findc *.jpg
+find nano
+find nano.rtf
+findc b*
+findc n*a*k*
