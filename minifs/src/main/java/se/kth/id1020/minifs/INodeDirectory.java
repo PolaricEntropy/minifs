@@ -17,55 +17,65 @@ import java.util.List;
  */
 public class INodeDirectory extends INode {
 
-	private HashMap<String, INode> children;
+	private HashMap<String, INode> m_children;
+	private boolean m_WriteProtected;
 	
 	public INodeDirectory(String name, INodeDirectory parent)
 	{
 		super(name, parent);
-		children = new HashMap<String, INode>();
+		m_children = new HashMap<String, INode>();
 	}
 	
 	public List<INode> getChildren()
 	{
 		List<INode> output = new ArrayList<INode>();
-		output.addAll(children.values());
+		output.addAll(m_children.values());
 		return output;
 	}
 	
 	public INode getChild(String name)
 	{
-		return children.get(name);	
+		return m_children.get(name);	
+	}
+	
+	public boolean getWriteProtect()
+	{
+		return m_WriteProtected;
+	}
+	
+	public void setWriteProtect(boolean value)
+	{
+		m_WriteProtected = value;
 	}
 	
 	public void createDirectory(String name) throws IllegalArgumentException
 	{
-		INodeDirectory newdir = new INodeDirectory(name, this);
-		
-		//Check for INodes with this name, no dupe allowed.
-		if (getChild(name) == null)
-			children.put(name, newdir);
-		else
-			throw new IllegalArgumentException(String.format("A directory or file named %s does already exist.", name));	
-		
+		addChild(name, new INodeDirectory(name, this));
 	}
 	
 	public void createFile(String name)
 	{
-		INodeFile newfile = new INodeFile(name, this);
-		
+		addChild(name, new INodeFile(name, this));	
+	}
+	
+	private void addChild(String name, INode child)
+	{
+		if (m_WriteProtected)
+			throw new IllegalArgumentException(String.format("The directory '%s' is write protected.", getName()));
+			
 		//Check for INodes with this name, no dupe allowed.
 		if (getChild(name) == null)
-			children.put(name, newfile);
+			m_children.put(name, child);
 		else
-			throw new IllegalArgumentException(String.format("A directory or file named %s does already exist.", name));	
+			throw new IllegalArgumentException(String.format("A directory or file named '%s' does already exist.", name));	
 	}
 	
 	public List<INode> sortChildrenByTime()
 	{		
 		ArrayList<INode> output = new ArrayList<INode>();
-		output.addAll(children.values());
+		output.addAll(m_children.values());
 		
-		quickSort(output, 0, children.size()-1, new compareByTime());
+		quickSort(output, 0, m_children.size()-1, new compareByTime());
 		
 		return output;
 	}
@@ -73,13 +83,12 @@ public class INodeDirectory extends INode {
 	public List<INode> sortChildrenByName()
 	{	
 		ArrayList<INode> output = new ArrayList<INode>();
-		output.addAll(children.values());
+		output.addAll(m_children.values());
 		
-		quickSort(output, 0, children.size()-1, new compareByName());
+		quickSort(output, 0, m_children.size()-1, new compareByName());
 		
 		return output;
 	}
-		
 	
     private void quickSort(ArrayList<INode> input, int low, int high, Comparator<INode> comp)
     {

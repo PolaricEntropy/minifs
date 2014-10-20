@@ -13,12 +13,12 @@ public class INodeFileMemoryEfficient extends INode {
 	//Stack is more memory efficient then ArrayList as it doesn't have a load factor, it's 100% full all of the time.
 	//Another thing to improve memory efficiency is to change the block size based on what sort of files that's likely going to be stored
 	//in the file system.
-	private Stack<Block> blocks;
+	private Stack<Block> m_blocks;
 	
 	public INodeFileMemoryEfficient(String name, INodeDirectory parent)
 	{
 		super(name, parent);
-		blocks = new Stack<Block>();
+		m_blocks = new Stack<Block>();
 	}
 	
 	/**
@@ -30,12 +30,12 @@ public class INodeFileMemoryEfficient extends INode {
 		Block currBlock;
 		
 		//If we have blocks for this file, find the last one to start adding to that. If not then just use a new empty block.
-		if (blocks.size() > 0)
-			currBlock = blocks.get(blocks.size()-1);
+		if (m_blocks.size() > 0)
+			currBlock = m_blocks.get(m_blocks.size()-1);
 		else
 		{
 			currBlock = new Block();
-			blocks.add(currBlock);
+			m_blocks.add(currBlock);
 		}
 			
 		//If we start from an empty block endIndex would be BLOCK_SIZE-1 ex. 63.
@@ -55,11 +55,11 @@ public class INodeFileMemoryEfficient extends INode {
 				
 				//Advance indexes for the next round.
 				startIndex += endIndex +1; //Start at the next char after we left off.
-				endIndex = startIndex + Block.BLOCK_SIZE-1; //Increment with a block of data.
+				endIndex = startIndex + Block.g_BLOCK_SIZE-1; //Increment with a block of data.
 				
 				//Create a new block and add it to the list for the next round.
 				currBlock = new Block();
-				blocks.add(currBlock);
+				m_blocks.add(currBlock);
 				
 				//Check if we moved past our end of the data.
 				if (endIndex >= data.length()-1)
@@ -81,7 +81,7 @@ public class INodeFileMemoryEfficient extends INode {
 	{
 		StringBuilder sb = new StringBuilder();
 		
-		for (Block i : blocks)
+		for (Block i : m_blocks)
 			sb.append(i.getData());
 		
 		return sb.toString();
@@ -97,7 +97,7 @@ public class INodeFileMemoryEfficient extends INode {
 	{
 		int size = 0;
 		
-		for (Block i : blocks)
+		for (Block i : m_blocks)
 			size += i.getSize();
 		
 		return size;

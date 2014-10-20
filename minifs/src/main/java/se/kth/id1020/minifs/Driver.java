@@ -24,7 +24,10 @@ public class Driver {
 		FileSystem fs = new MiniFs();
 
 		while (bShouldExit == false)
+		{
+			StdOut.print(">> ");
 			StdOut.println(processCmd(fs, StdIn.readLine()));
+		}
 	}
 
 	public static String processCmdFile(FileSystem fs, String path)
