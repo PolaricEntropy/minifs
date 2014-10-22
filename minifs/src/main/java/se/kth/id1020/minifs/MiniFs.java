@@ -281,8 +281,8 @@ public class MiniFs implements FileSystem {
 				INode target = findNode(symlink.getTarget(), false);
 				
 				//Add this symlink to the list of visited symlinks.
-				if (!list.contains(target.getPath()))
-					list.add(target.getPath());
+				if (!list.contains(symlink.getPath()))
+					list.add(symlink.getPath());
 				else
 					return true;
 				
@@ -294,8 +294,8 @@ public class MiniFs implements FileSystem {
 					target = findNode(symlink.getTarget(), false);
 					
 					//Add this symlink to the list.
-					if (!list.contains(target.getPath()))
-						list.add(target.getPath());
+					if (!list.contains(symlink.getPath()))
+						list.add(symlink.getPath());
 					else
 						return true;
 				}
