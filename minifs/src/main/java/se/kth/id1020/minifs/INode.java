@@ -18,8 +18,13 @@ public abstract class INode{
 
 	public INode(String name, INodeDirectory parent)
 	{
-		this.m_name = name;
-		this.m_accessTime = System.currentTimeMillis();
+		//This is the root folder, special naming rules for that.
+		if (parent == null)
+			this.m_name = name;
+		else
+			setName(name);
+		
+		setAccessTime(System.currentTimeMillis());
 		this.m_parent = parent;
 	}
 
@@ -40,12 +45,11 @@ public abstract class INode{
 
 	public void setName(String name)
 	{
-		//Other functions calling this function should sanitize user supplied input,
-		//but just in case check for illegal characters.
-		if (name.contains(FileSystem.g_pathDelimiter) == false)
+		//Check for invalid characters.
+		if (!(name.contains(FileSystem.g_pathDelimiter) || name.equals(".") || name.equals("..")))
 			this.m_name = name;
 		else
-			throw new IllegalArgumentException("The filename or directory name syntax is incorrect.");
+			throw new IllegalArgumentException("The name syntax is incorrect.");
 	}
 	
 	public INodeDirectory getParent()

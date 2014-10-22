@@ -43,7 +43,7 @@ public class MiniFs implements FileSystem {
 		String[] values = SeparatePath(path);
 		
 		//Find the directory in the path, so we can add a new directory to it.
-		INode node = findNode(path, true);
+		INode node = findNode(values[1], true);
 		
 		if (node instanceof INodeDirectory)
 			((INodeDirectory) node).createDirectory(values[0]);
@@ -61,7 +61,7 @@ public class MiniFs implements FileSystem {
 		String[] values = SeparatePath(path);
 		
 		//Find the directory in the path, so we can add a new file to it.
-		INode node = findNode(path, true);
+		INode node = findNode(values[1], true);
 		
 		if (node instanceof INodeDirectory)
 			((INodeDirectory) node).createFile(values[0]);
@@ -196,7 +196,10 @@ public class MiniFs implements FileSystem {
 		
 		if (node == null)
 			throw new IllegalArgumentException(String.format("The path '%s' does not exist.", path));
-			
+		
+		if (node.getParent() == null)
+			throw new IllegalArgumentException(String.format("You can not remove the root folder.", path));
+		
 		//If we have no parameters we need to check if the node we are going to remove does not have any children.
 		if (param.isEmpty())
 		{				
@@ -218,7 +221,7 @@ public class MiniFs implements FileSystem {
 		//Need to separate path and name from the argument.
 		String[] values = SeparatePath(SrcPath);
 		
-		INode srcDir = findNode(SrcPath, true);
+		INode srcDir = findNode(values[1], true);
 		
 		if (!(srcDir instanceof INodeDirectory))
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", SrcPath));
@@ -260,7 +263,6 @@ public class MiniFs implements FileSystem {
 			return "We have found a cycle.";
 		else
 			return "No cycle found!";
-		
 	}
 	
 	
@@ -445,7 +447,7 @@ public class MiniFs implements FileSystem {
 			else if (i instanceof INodeSymbolicLink)
 			{
 				INodeSymbolicLink symlink = (INodeSymbolicLink) i;
-				INode target = findNode(symlink.getPath(), false);
+				INode target = findNode(symlink.getTarget(), false);
 				
 				if (target instanceof INodeDirectory)
 				{
@@ -506,39 +508,8 @@ public class MiniFs implements FileSystem {
 	 */
 	private INode findNode(String path, boolean traverseSymlinks)
 	{
-		//Separate the path into its components, path and node name.
-		String[] values = SeparatePath(path);
-		
-		//Find the directory, so we can find the node. If we are following a symlink we will follow it to the correct folder.
-		INodeDirectory dir = findDir(values[1]);
-		
-		if (dir == null)
-			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", values[1]));
-		
-		INode child = dir.getChild(values[0]);
-		
-		if (child == null)
-			throw new IllegalArgumentException(String.format("The file/directory '%s' does not exist.", values[0]));
-		
-		if (child instanceof INodeSymbolicLink && traverseSymlinks)
-		{
-			INodeSymbolicLink symlink = (INodeSymbolicLink) child;
-			child = TraverseSymlink(symlink);
-		}
-		
-		return child;
-	}
-	
-	/**
-	 * Finds and returns the specified directory.
-	 * 
-	 * @param path Absolute or relative path to the directory we should find.
-	 * @return Returns the INodeDirectory that matches the directory path.
-	 */
-	private INodeDirectory findDir(String path)
-	{
 		//Assume working dir for now, anything else discovered will change this to what it should be.
-		INodeDirectory cur = m_workingDir;
+		INode cur = m_workingDir;
 		
 		//If we have an empty path then we should start form working dir.
 		if (path.isEmpty())
@@ -572,44 +543,40 @@ public class MiniFs implements FileSystem {
 				path = path.substring(2); //Same as above, we are guaranteed to have a delimiter at the end.
 		}
 		
-		//Split the input path into an array so we can process each directory individually.
+		//Split the input path into an array so we can process each node individually.
 		String[] dirTree = path.split(g_pathDelimiter);
 		
-		//Search for each directory in the path.
+		//Search for each node in the path.
 		for (int i = 0; i < dirTree.length; i++)
 		{
 			//If we have a empty array position then just skip that. This happens if path is "" or a delimiter, then split produces an array with an empty position.
 			if (dirTree[i].isEmpty())
 				continue;
 			
-			//Search the children of the current directory.
-			INode result = cur.getChild(dirTree[i]);
+			//If we don't have a directory that means that we've found something else with the matching name and the loop is not over, hence we didn't find the correct thing.
+			if (!(cur instanceof INodeDirectory))
+				return null;
+			
+			//Search the children of the current directory. cur will always be a directory at this point.
+			INode result = ((INodeDirectory)cur).getChild(dirTree[i]);
 		
-			//Null result. We didn't find the directory in the current directory, return null and let callings functions handle this.
+			//Null result. We didn't find the node in the current directory, return null and let calling functions handle this.
 			if (result == null)
 				return null;
-						
-			//If it's a directory we'll update cur to search for the text thing.
-			if (result instanceof INodeDirectory)
-				cur = (INodeDirectory)result;
-			else if (result instanceof INodeSymbolicLink)
+			
+			
+			cur = result;
+			
+			if (result instanceof INodeSymbolicLink && traverseSymlinks)
 			{
 				INodeSymbolicLink symlink = (INodeSymbolicLink) result;
 				INode target = TraverseSymlink(symlink);
 				
-				if (target instanceof INodeDirectory)
-					cur = (INodeDirectory) target;
-				else if (target instanceof INodeFile) //Points to a normal file.
-					return null;
+				cur = target;
 			}
-			else if (result instanceof INodeFile)
-				//We found a file, stop and return null.
-				return null;
-		
 		}
 		
 		//We've found all the directories in the path, it's time to return.
 		return cur;
-		
 	}
 }
