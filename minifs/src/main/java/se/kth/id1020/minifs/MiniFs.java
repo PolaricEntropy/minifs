@@ -30,7 +30,7 @@ public class MiniFs implements FileSystem {
 		m_root = new INodeDirectory(g_pathDelimiter, null); //Null parent, since this is the root node.
 		m_workingDir = m_root;
 		m_root.createDirectory("home");
-		m_root.setWriteProtect(true);
+		m_root.setWriteProtect(true);	//Root node is write protected.
 	}
 	
 	/**
@@ -43,12 +43,12 @@ public class MiniFs implements FileSystem {
 		String[] values = SeparatePath(path);
 		
 		//Find the directory in the path, so we can add a new directory to it.
-		INodeDirectory dir = findDir(values[1]);
+		INode node = findNode(path, true);
 		
-		if (dir == null)
+		if (node instanceof INodeDirectory)
+			((INodeDirectory) node).createDirectory(values[0]);
+		else
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", values[1]));
-		
-		dir.createDirectory(values[0]);	
 	}
 
 	/**
@@ -61,12 +61,12 @@ public class MiniFs implements FileSystem {
 		String[] values = SeparatePath(path);
 		
 		//Find the directory in the path, so we can add a new file to it.
-		INodeDirectory dir = findDir(values[1]);
+		INode node = findNode(path, true);
 		
-		if (dir == null)
+		if (node instanceof INodeDirectory)
+			((INodeDirectory) node).createFile(values[0]);
+		else
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", values[1]));
-		
-		dir.createFile(values[0]);
 	}
 
 	/**
@@ -81,11 +81,10 @@ public class MiniFs implements FileSystem {
 		if (node instanceof INodeFile)
 		{
 			INodeFile file = (INodeFile) node;
-			
 			file.addData(data);
 			file.setAccessTime(System.currentTimeMillis());
 		}
-		else //Catches both if node is null or is an INodeDirectory.
+		else
 			throw new IllegalArgumentException(String.format("The file '%s' does not exist.", path));
 	}
 
@@ -97,22 +96,25 @@ public class MiniFs implements FileSystem {
 	 */
 	public String ls(String path, String param)
 	{
-		INodeDirectory dir = findDir(path);
+		INode node = findNode(path, false);
 		
-		if (dir == null)
-			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", path));
-		
-		List<INode> sortedINodes;
-		
-		//Sort depending on parameter.
-		if (param.trim().equals("-t"))
-			sortedINodes = dir.sortChildrenByTime();
-		else if(param.trim().equals("-s"))
-			sortedINodes = dir.sortChildrenByName();
+		if (node instanceof INodeDirectory)
+		{
+			List<INode> sortedINodes;
+			INodeDirectory dir = (INodeDirectory) node;
+			
+			//Sort depending on parameter.
+			if (param.trim().equals("-t"))
+				sortedINodes = dir.sortChildrenByTime();
+			else if(param.trim().equals("-s"))
+				sortedINodes = dir.sortChildrenByName();
+			else
+				throw new IllegalArgumentException(String.format("The parameter '%s' is not supported by ls.", param));
+			
+			return listFiles(dir, sortedINodes);
+		}
 		else
-			throw new IllegalArgumentException(String.format("The parameter '%s' is not supported by ls.", param));
-		
-		return listFiles(dir, sortedINodes);		
+			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", path));		
 	}
   
 	/**
@@ -122,16 +124,18 @@ public class MiniFs implements FileSystem {
 	 */
 	public String du(String path)
 	{
-		INodeDirectory dir = findDir(path);
+		INode node = findNode(path, false);
 		
-		if (dir == null)
+		if (node instanceof INodeDirectory)
+		{
+			//Create a StringBuilder that the recursive function should use for adding stuff.
+			StringBuilder sb = new StringBuilder();
+			
+			diskUsage((INodeDirectory) node, sb);
+			return sb.toString();
+		}
+		else
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", path));
-		
-		//Create a StringBuilder that the recursive function should use for adding stuff.
-		StringBuilder sb = new StringBuilder();
-		
-		diskUsage(dir, sb);
-		return sb.toString();		
 	}
 	
 	/**
@@ -144,12 +148,9 @@ public class MiniFs implements FileSystem {
 		INode node = findNode(path, true);
 		
 		if (node instanceof INodeFile)
-		{
 			return ((INodeFile) node).getData();
-		}
-		else //Catches both if node is null or is an INodeDirectory.
+		else
 			throw new IllegalArgumentException(String.format("The file '%s' does not exist.",path));
-			
 	}
 	
 	/**
@@ -167,12 +168,12 @@ public class MiniFs implements FileSystem {
 	 */
 	public void cd(String path)
 	{
-		INodeDirectory dir = findDir(path);
+		INode node = findNode(path, true);
 		
-		if (dir == null)
+		if (node instanceof INodeDirectory)
+			m_workingDir = (INodeDirectory) node;
+		else
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.",path));
-			
-		m_workingDir = dir;
 	}
 
 	/**
@@ -194,7 +195,7 @@ public class MiniFs implements FileSystem {
 		INode node = findNode(path, false);
 		
 		if (node == null)
-			throw new IllegalArgumentException(String.format("The file/directory '%s' does not exist.", path));
+			throw new IllegalArgumentException(String.format("The path '%s' does not exist.", path));
 			
 		//If we have no parameters we need to check if the node we are going to remove does not have any children.
 		if (param.isEmpty())
@@ -209,27 +210,28 @@ public class MiniFs implements FileSystem {
 		else if(!param.trim().equals("-rf")) //If param is NOT "-rf". The "-rf" param just skips the check above.
 			throw new IllegalArgumentException(String.format("The parameter '%s' is not supported by rm.", param));
 	
-		
 		node.getParent().removeNode(node.getName());
 	}
 	
 	public String ln(String SrcPath, String DestPath)
-	{
-		
+	{	
 		//Need to separate path and name from the argument.
 		String[] values = SeparatePath(SrcPath);
 		
-		//Find the source dir.
-		INodeDirectory srcDir = findDir(values[1]);
+		INode srcDir = findNode(SrcPath, true);
 		
-		//Find the Destination.
+		if (!(srcDir instanceof INodeDirectory))
+			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", SrcPath));
+		
 		INode dest = findNode(DestPath, true);
 		
-		srcDir.createSymlink(values[0], dest.getPath());
+		if (dest == null)
+			throw new IllegalArgumentException(String.format("The path '%s' does not exist.", DestPath));
+			
+		((INodeDirectory) srcDir).createSymlink(values[0], dest.getPath());
 		
 		//TODO: Cycle check if the new symlink has created a cycle.
-		
-		return String.format("Symbolic link created: %s --> %s", SrcPath, DestPath);
+		return String.format("Symbolic link created: %s --> %s", SrcPath, DestPath);	
 	}
 
 	public String find(String criteria)
@@ -443,7 +445,7 @@ public class MiniFs implements FileSystem {
 			else if (i instanceof INodeSymbolicLink)
 			{
 				INodeSymbolicLink symlink = (INodeSymbolicLink) i;
-				INode target = TraverseSymlink(symlink);
+				INode target = findNode(symlink.getPath(), false);
 				
 				if (target instanceof INodeDirectory)
 				{

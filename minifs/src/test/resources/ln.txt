@@ -1,5 +1,5 @@
 mkdir home/bjorn
 mkdir home/olof
-ln home/bjorn/test home/olof
-//ln home/olof/test home/bjorn
-ln home/bjorn/test2 home/bjorn
+//mkdir home/
+ln home/bjorn/link home/olof
+ln home/olof/link home/bjorn/link

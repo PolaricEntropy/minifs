@@ -11,7 +11,7 @@ package se.kth.id1020.minifs;
 public interface FileSystem {
 
 	public String g_pathDelimiter = "/";
-
+	
 	public void mkdir(String path);
 
 	public void touch(String path);
