@@ -65,8 +65,11 @@ public class Driver {
 			params = comp[1].toLowerCase();
 
 		try
-		{	  
-			if (cmd.equals("mkdir"))
+		{	
+			
+			if (cmd.startsWith("//"))
+				return result;
+			else if (cmd.equals("mkdir"))
 				fs.mkdir(processOneArg(params));
 			else if (cmd.equals("touch"))
 				fs.touch(processOneArg(params));

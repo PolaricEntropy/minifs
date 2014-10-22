@@ -52,4 +52,30 @@ public abstract class INode{
 	{
 		return m_parent;
 	}
+	
+	/**
+	 * Returns the path of the current INode.
+	 * @return Returns the absolute path to the INode.
+	 */
+	public String getPath()
+	{
+		StringBuilder sb = new StringBuilder();
+		INode node = this;
+		
+		
+		//If we start from the root we'll just print the delimiter. 
+		if (node.getParent() == null)
+			sb.append(FileSystem.g_pathDelimiter);
+		else
+		{
+			//If we hit the root just stop, no need to print the root, we've already printed the delimiter for the first directory.
+			while (node.getParent() != null)
+			{	
+				//Since we are going backwards we need to add each name at the start of the string.
+				sb.insert(0, String.format("%s%s", FileSystem.g_pathDelimiter, node.getName()));
+				node = node.getParent();
+			}
+		}
+		return sb.toString();
+	}
 }

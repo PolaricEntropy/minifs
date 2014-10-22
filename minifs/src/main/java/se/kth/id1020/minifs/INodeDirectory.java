@@ -57,7 +57,7 @@ public class INodeDirectory extends INode {
 		addChild(name, new INodeFile(name, this));	
 	}
 	
-	public void createSymlink(String name, INode dest)
+	public void createSymlink(String name, String dest)
 	{
 		addChild(name, new INodeSymbolicLink(name, this, dest));
 	}

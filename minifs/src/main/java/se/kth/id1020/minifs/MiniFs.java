@@ -9,6 +9,7 @@ package se.kth.id1020.minifs;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
  /**
@@ -157,7 +158,7 @@ public class MiniFs implements FileSystem {
 	 */
 	public String pwd()
 	{
-		return getPath(m_workingDir);
+		return m_workingDir.getPath();
 	}
 	
 	/**
@@ -214,6 +215,7 @@ public class MiniFs implements FileSystem {
 	
 	public String ln(String SrcPath, String DestPath)
 	{
+		
 		//Need to separate path and name from the argument.
 		String[] values = SeparatePath(SrcPath);
 		
@@ -223,7 +225,7 @@ public class MiniFs implements FileSystem {
 		//Find the Destination.
 		INode dest = findNode(DestPath, true);
 		
-		srcDir.createSymlink(values[0], dest);
+		srcDir.createSymlink(values[0], dest.getPath());
 		
 		//TODO: Cycle check if the new symlink has created a cycle.
 		
@@ -250,9 +252,60 @@ public class MiniFs implements FileSystem {
 
 	public String cycles()
 	{
-		return null;
+		HashSet<String> SymlinkDestinations = new HashSet<String>();
+		
+		if (findSymlinks(m_root, SymlinkDestinations))
+			return "We have found a cycle.";
+		else
+			return "No cycle found!";
+		
 	}
 	
+	
+	private boolean findSymlinks(INodeDirectory curDir, HashSet<String> list)
+	{
+		for (INode child: curDir.getChildren())
+		{
+			if (child instanceof INodeDirectory)
+			{
+				if (findSymlinks((INodeDirectory) child, list))
+					return true;
+			}
+			else if (child instanceof INodeSymbolicLink)
+			{
+				INodeSymbolicLink symlink = (INodeSymbolicLink) child;
+				INode target = findNode(symlink.getTarget(), false);
+				
+				//Add this symlink to the list of visited symlinks.
+				if (!list.contains(target.getPath()))
+					list.add(target.getPath());
+				else
+					return true;
+				
+				//If the target is a symlink we need to follow it and add all intermediate symlinks to our list.
+				while(target instanceof INodeSymbolicLink)
+				{
+					//Follow symlink.
+					symlink = (INodeSymbolicLink) target;
+					target = findNode(symlink.getTarget(), false);
+					
+					//Add this symlink to the list.
+					if (!list.contains(target.getPath()))
+						list.add(target.getPath());
+					else
+						return true;
+				}
+				
+				//If the symlink now targets a directory we need to search this dir for symlinks.
+				if (target instanceof INodeDirectory)
+					if (findSymlinks((INodeDirectory) target, list))
+						return true;
+			}
+		}
+		
+		//No symlinks found.
+		return false;
+	}
 	
 	private void findInDir(INodeDirectory dir, String criteria, StringBuilder sb, boolean useWildcards)
 	{
@@ -266,9 +319,9 @@ public class MiniFs implements FileSystem {
 			{
 				if (useWildcards)
 				{
-					if (matchesWildcard(name, criteria))
+					if (StringMethods.matchesWildcard(name, criteria))
 					{
-						sb.append(getPath(child));
+						sb.append(child.getPath());
 						sb.append("\n");
 					}
 				}
@@ -277,7 +330,7 @@ public class MiniFs implements FileSystem {
 			{
 				if (name.equals(criteria))
 				{
-					sb.append(getPath(child));
+					sb.append(child.getPath());
 					sb.append("\n");
 				}
 			}
@@ -291,53 +344,7 @@ public class MiniFs implements FileSystem {
 		}
 	}
 	
-	private boolean matchesWildcard (String input, String criteria)
-	{
-		//Contains just the wildcard.
-		if (criteria.length() == 1)
-			return true;
-		
-		String[] searchStrings = criteria.split("\\*");
-		
-		for (int i = 0; i < searchStrings.length; i++)
-		{
-			//If it's the first argument we need to check startsWith, unless first element is a star.
-			if (i == 0)
-			{
-				//If the element is empty 'criteria' started with a * ex. *test, so just skip this element.
-				if (searchStrings[i].isEmpty())
-					continue;
-				else
-				{
-					if (!input.startsWith(searchStrings[i])) //Criteria is for example stu*nt, check if we start with stu.
-						return false;
-				}
-			}
-			else if (i == searchStrings.length-1) //If last element.
-			{
-				//If our criteria ends with star we don't need to end the 
-				if (!criteria.endsWith("*"))
-				{
-					if(input.endsWith(searchStrings[i])) //Criteria is for example stu*nt, check if we end with nt.
-						return true;
-					else
-						return false;
-				}
-			}
-		
-			//Find index for the element in input.
-			int index = input.indexOf(searchStrings[i]);	
-			
-			
-			if (index == -1)
-				return false;
-			
-			//We've searched for this, so just remove that part of the string.
-			input = input.substring(index + searchStrings[i].length());
-		}
-		
-		return true;
-	}
+	
 	
 	/**
 	 * Gets the disk usage of all the directories and files in the specified directory. This method recursively searches all sub-directories of a given directory.
@@ -364,42 +371,33 @@ public class MiniFs implements FileSystem {
 			if (child instanceof INodeFile)
 			{
 				INodeFile file = (INodeFile)child;
-				sb.append(String.format("%s %s \n", file.getSize(), getPath(child)));
+				sb.append(String.format("%s %s \n", file.getSize(), child.getPath()));
 				dirTotalSize += file.getSize();
 			}
 		}
 		
 		
 		//We've now done all files and directories for this directory. Print total for this dir.
-		sb.append(String.format("%s %s \n", dirTotalSize, getPath(dir)));
+		sb.append(String.format("%s %s \n", dirTotalSize, dir.getPath()));
 		
 		return dirTotalSize;
 	}
 	
-	/**
-	 * Returns the path to a specified INode.
-	 * @param node The INode to get the path for.
-	 * @return Returns the absolute path to the INode.
-	 */
-	private String getPath(INode node)
+	private INode TraverseSymlink(INodeSymbolicLink symlink)
 	{
-		StringBuilder sb = new StringBuilder();
+		INode target = findNode(symlink.getTarget(), false);
 		
-		//If we start from the root we'll just print the delimiter. 
-		if (node == m_root)
-			sb.append(g_pathDelimiter);
-		else
+		//We will break out of this, I promise! We can't point to symlinks in all eternity without having a cycle.
+		while(target instanceof INodeSymbolicLink)
 		{
-			//If we hit the root just stop, no need to print the root, we've already printed the delimiter for the first directory.
-			while (node != m_root)
-			{	
-				//Since we are going backwards we need to add each name at the start of the string.
-				sb.insert(0, String.format("%s%s", g_pathDelimiter, node.getName()));
-				node = node.getParent();
-			}
+			//Follow symlink.
+			symlink = (INodeSymbolicLink) target;
+			target = findNode(symlink.getTarget(), false);
 		}
-		return sb.toString();
+		
+		return target;
 	}
+	
 	
 	/**
 	 * Builds a formatted string of the INodes that belong to the specified INodeDirectory.
@@ -413,7 +411,7 @@ public class MiniFs implements FileSystem {
 		DateFormat formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss:SSS");
 		
 		//Add info about what directory we are printing.
-		sb.append(String.format("Directory of %s\n\n", getPath(dir)));
+		sb.append(String.format("Directory of %s\n\n", dir.getPath()));
 		
 		Date accessTime;
 		
@@ -445,7 +443,7 @@ public class MiniFs implements FileSystem {
 			else if (i instanceof INodeSymbolicLink)
 			{
 				INodeSymbolicLink symlink = (INodeSymbolicLink) i;
-				INode target = symlink.getTarget();
+				INode target = TraverseSymlink(symlink);
 				
 				if (target instanceof INodeDirectory)
 				{
@@ -464,8 +462,10 @@ public class MiniFs implements FileSystem {
 				files++;
 			}
 			
-			//TODO: Print path to target for symlink like cmd.
-			sb.append(String.format("%s\n", i.getName()));
+			if (i instanceof INodeSymbolicLink)
+				sb.append(String.format("%s [%s]\n", i.getName(), ((INodeSymbolicLink) i).getTarget()));
+			else
+				sb.append(String.format("%s\n", i.getName()));
 		}
 		
 		//Add some stats for this folder.
@@ -521,17 +521,7 @@ public class MiniFs implements FileSystem {
 		if (child instanceof INodeSymbolicLink && traverseSymlinks)
 		{
 			INodeSymbolicLink symlink = (INodeSymbolicLink) child;
-			INode target = symlink.getTarget();
-			
-			//We will break out of this, I promise! We can't point to symlinks in all eternity without having a cycle.
-			while(target instanceof INodeSymbolicLink)
-			{
-				//Follow symlink.
-				symlink = (INodeSymbolicLink) target;
-				target = symlink.getTarget();
-			}
-			
-			child = target;
+			child = TraverseSymlink(symlink);
 		}
 		
 		return child;
@@ -603,15 +593,7 @@ public class MiniFs implements FileSystem {
 			else if (result instanceof INodeSymbolicLink)
 			{
 				INodeSymbolicLink symlink = (INodeSymbolicLink) result;
-				INode target = symlink.getTarget();
-				
-				//We will break out of this, I promise! We can't point to symlinks in all eternity without having a cycle.
-				while(target instanceof INodeSymbolicLink)
-				{
-					//Follow symlink.
-					symlink = (INodeSymbolicLink) target;
-					target = symlink.getTarget();
-				}
+				INode target = TraverseSymlink(symlink);
 				
 				if (target instanceof INodeDirectory)
 					cur = (INodeDirectory) target;
