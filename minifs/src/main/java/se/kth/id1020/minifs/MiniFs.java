@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Stack;
 
  /**
   * Mini file system that implements some basic file system operations.
@@ -39,16 +40,15 @@ public class MiniFs implements FileSystem {
 	 */
 	public void mkdir(String path)
 	{	
-		//Need to separate the new node name from the argument.
-		String[] values = SeparatePath(path);
+		//Need to separate the new node name from the rest of the path.
+		String[] splitPath = SeparatePath(path);
 		
-		//Find the directory in the path, so we can add a new directory to it.
-		INode node = findNode(values[1], true);
+		INode node = findNode(splitPath[1], true);
 		
 		if (node instanceof INodeDirectory)
-			((INodeDirectory) node).createDirectory(values[0]);
+			((INodeDirectory) node).createDirectory(splitPath[0]);
 		else
-			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", values[1]));
+			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", splitPath[1]));
 	}
 
 	/**
@@ -57,16 +57,15 @@ public class MiniFs implements FileSystem {
 	 */
 	public void touch(String path)
 	{
-		//Need to separate the new node name from the argument.
-		String[] values = SeparatePath(path);
+		//Need to separate the new node name from the rest of the path.
+		String[] splitPath = SeparatePath(path);
 		
-		//Find the directory in the path, so we can add a new file to it.
-		INode node = findNode(values[1], true);
+		INode node = findNode(splitPath[1], true);
 		
 		if (node instanceof INodeDirectory)
-			((INodeDirectory) node).createFile(values[0]);
+			((INodeDirectory) node).createFile(splitPath[0]);
 		else
-			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", values[1]));
+			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", splitPath[1]));
 	}
 
 	/**
@@ -221,20 +220,49 @@ public class MiniFs implements FileSystem {
 		//Need to separate path and name from the argument.
 		String[] values = SeparatePath(SrcPath);
 		
-		INode srcDir = findNode(values[1], true);
+		INodeDirectory srcDir;
 		
-		if (!(srcDir instanceof INodeDirectory))
+		try
+		{
+			srcDir = (INodeDirectory)findNode(values[1], true);
+		}
+		catch (Exception ex)
+		{
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", SrcPath));
+		}
 		
-		INode dest = findNode(DestPath, true);
+		//We want to traverse symlinks while setting the destination, that way we don't get false positives on cycles if we have a symlink as a destination.
+		INode dest = findNode(DestPath, false);
 		
 		if (dest == null)
 			throw new IllegalArgumentException(String.format("The path '%s' does not exist.", DestPath));
 			
-		((INodeDirectory) srcDir).createSymlink(values[0], dest.getPath());
+		srcDir.createSymlink(values[0], dest.getPath());
 		
-		//TODO: Cycle check if the new symlink has created a cycle.
-		return String.format("Symbolic link created: %s --> %s", SrcPath, DestPath);	
+		Stack<String> cycleStack = findSymlinks(m_root, new HashSet<String>(), new Stack<String>());
+		
+		if (cycleStack.isEmpty())
+			return String.format("Symbolic link created: %s --> %s", SrcPath, DestPath);
+		else
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append("Symlink created a cycle: ");
+			
+			
+			while(cycleStack.isEmpty() == false)
+			{
+				sb.append(cycleStack.pop());
+				
+				if (cycleStack.isEmpty() == false)
+					sb.append(" -> ");
+			}
+				
+			sb.append("\n Removing the symlink.");
+			
+			srcDir.removeNode(values[0]);
+			
+			return sb.toString();
+		}
 	}
 
 	public String find(String criteria)
@@ -257,58 +285,66 @@ public class MiniFs implements FileSystem {
 
 	public String cycles()
 	{
-		HashSet<String> SymlinkDestinations = new HashSet<String>();
-		
-		if (findSymlinks(m_root, SymlinkDestinations))
-			return "We have found a cycle.";
+		Stack<String> cycleStack = findSymlinks(m_root, new HashSet<String>(), new Stack<String>());
+				
+		if (cycleStack.isEmpty())
+			return "No cycle found!";	
 		else
-			return "No cycle found!";
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append("Cycle detected: ");
+			
+			while(cycleStack.isEmpty() == false)
+			{
+				sb.append(cycleStack.pop());
+				
+				if (cycleStack.isEmpty() == false)
+					sb.append(" -> ");
+			}
+				
+			return sb.toString();
+		}
 	}
 	
-	
-	private boolean findSymlinks(INodeDirectory curDir, HashSet<String> list)
+	private Stack<String> findSymlinks(INodeDirectory curDir, HashSet<String> list, Stack<String> cycleStack)
 	{
 		for (INode child: curDir.getChildren())
 		{
 			if (child instanceof INodeDirectory)
 			{
-				if (findSymlinks((INodeDirectory) child, list))
-					return true;
+				cycleStack = findSymlinks((INodeDirectory) child, list, cycleStack);
+				if (cycleStack.isEmpty() == false)
+					return cycleStack;
 			}
 			else if (child instanceof INodeSymbolicLink)
-			{
+			{					
 				INodeSymbolicLink symlink = (INodeSymbolicLink) child;
-				INode target = findNode(symlink.getTarget(), false);
+				INode target = findNode(symlink.getTarget(), true);
 				
-				//Add this symlink to the list of visited symlinks.
-				if (!list.contains(symlink.getPath()))
-					list.add(symlink.getPath());
-				else
-					return true;
+				//TODO: Remove code from various places about following symlinks that links to symlinks, that's not possible now.
 				
-				//If the target is a symlink we need to follow it and add all intermediate symlinks to our list.
-				while(target instanceof INodeSymbolicLink)
+				//If the symlink now targets a directory we need to search this dir for symlinks.
+				//This is the only place a cycle could occur really, after we've followed a symlink to a directory.
+				if (target instanceof INodeDirectory)
 				{
-					//Follow symlink.
-					symlink = (INodeSymbolicLink) target;
-					target = findNode(symlink.getTarget(), false);
+					cycleStack.push(target.getPath());
+					cycleStack.push(symlink.getPath());
 					
-					//Add this symlink to the list.
+					//Add this symlink to the list of visited symlinks.
 					if (!list.contains(symlink.getPath()))
 						list.add(symlink.getPath());
 					else
-						return true;
+						return cycleStack;
+					
+					cycleStack = findSymlinks((INodeDirectory) target, list, cycleStack);
+					if (cycleStack.isEmpty() == false)
+						return cycleStack;
 				}
-				
-				//If the symlink now targets a directory we need to search this dir for symlinks.
-				if (target instanceof INodeDirectory)
-					if (findSymlinks((INodeDirectory) target, list))
-						return true;
 			}
 		}
 		
 		//No symlinks found.
-		return false;
+		return new Stack<String>();
 	}
 	
 	private void findInDir(INodeDirectory dir, String criteria, StringBuilder sb, boolean useWildcards)
