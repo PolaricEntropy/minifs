@@ -8,6 +8,7 @@ package se.kth.id1020.minifs;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -24,14 +25,14 @@ public class MiniFs implements FileSystem {
 	private String m_version = "1.1";
 	
 	/**
-	 * Constructor. Creates a new MiniFs object with a root directory.
+	 * Constructor. Creates a new MiniFs object with a root and home directory and write protects the root node.
 	 */
 	public MiniFs()
 	{
 		m_root = new INodeDirectory(g_pathDelimiter, null); //Null parent, since this is the root node.
 		m_workingDir = m_root;
 		m_root.createDirectory("home");
-		m_root.setWriteProtect(true);	//Root node is write protected.
+		m_root.setWriteProtect(true);	//Root node is write protected according to specs.
 	}
 	
 	/**
@@ -74,17 +75,17 @@ public class MiniFs implements FileSystem {
 	 * @param data The data to be added to the file.
 	 */
 	public void append(String path, String data)
-	{
-		INode node = findNode(path, true);
-		
-		if (node instanceof INodeFile)
+	{		
+		try
 		{
-			INodeFile file = (INodeFile) node;
+			INodeFile file = (INodeFile)findNode(path, true);
 			file.addData(data);
 			file.setAccessTime(System.currentTimeMillis());
 		}
-		else
+		catch (ClassCastException | NullPointerException ex)
+		{
 			throw new IllegalArgumentException(String.format("The file '%s' does not exist.", path));
+		}
 	}
 
 	/**
@@ -94,13 +95,11 @@ public class MiniFs implements FileSystem {
 	 * @return A formatted string with the directory listing.
 	 */
 	public String ls(String path, String param)
-	{
-		INode node = findNode(path, false);
-		
-		if (node instanceof INodeDirectory)
+	{		
+		try
 		{
 			List<INode> sortedINodes;
-			INodeDirectory dir = (INodeDirectory) node;
+			INodeDirectory dir = (INodeDirectory) findNode(path, false); 
 			
 			//Sort depending on parameter.
 			if (param.trim().equals("-t"))
@@ -112,8 +111,10 @@ public class MiniFs implements FileSystem {
 			
 			return listFiles(dir, sortedINodes);
 		}
-		else
-			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", path));		
+		catch (ClassCastException | NullPointerException ex)
+		{
+			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", path));
+		}
 	}
   
 	/**
@@ -190,14 +191,13 @@ public class MiniFs implements FileSystem {
 	 */
 	public void rm(String path, String param)
 	{	
-		//We don't want to follow symlinks, cause then we can't ever remove them.
 		INode node = findNode(path, false);
 		
 		if (node == null)
 			throw new IllegalArgumentException(String.format("The path '%s' does not exist.", path));
 		
-		if (node.getParent() == null)
-			throw new IllegalArgumentException(String.format("You can not remove the root folder.", path));
+		if (node == m_root)
+			throw new IllegalArgumentException(String.format("You can not remove the root directory.", path));
 		
 		//If we have no parameters we need to check if the node we are going to remove does not have any children.
 		if (param.isEmpty())
@@ -205,7 +205,7 @@ public class MiniFs implements FileSystem {
 			if (node instanceof INodeDirectory)
 			{
 				INodeDirectory dir = (INodeDirectory) node;
-				if (dir.getChildren().isEmpty() == false)
+				if (!(dir.getChildren().isEmpty()))
 					throw new IllegalArgumentException(String.format("The directory '%s' is not empty.", path));
 			}
 		}
@@ -217,37 +217,40 @@ public class MiniFs implements FileSystem {
 	
 	public String ln(String SrcPath, String DestPath)
 	{	
-		//Need to separate path and name from the argument.
-		String[] values = SeparatePath(SrcPath);
+		//Need to separate the new node name from the rest of the path.
+		String[] splitPath = SeparatePath(SrcPath);
 		
 		INodeDirectory srcDir;
 		
 		try
 		{
-			srcDir = (INodeDirectory)findNode(values[1], true);
+			srcDir = (INodeDirectory)findNode(splitPath[1], true);
 		}
 		catch (Exception ex)
 		{
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", SrcPath));
 		}
 		
-		//We want to traverse symlinks while setting the destination, that way we don't get false positives on cycles if we have a symlink as a destination.
+		//We won't traverse symlinks while finding the destination node, that way we can link to a link.
 		INode dest = findNode(DestPath, false);
 		
 		if (dest == null)
 			throw new IllegalArgumentException(String.format("The path '%s' does not exist.", DestPath));
 			
-		srcDir.createSymlink(values[0], dest.getPath());
+		srcDir.createSymlink(splitPath[0], dest.getPath());
 		
+		//Contains the symlinks and their targets if we have cycles.
 		Stack<String> cycleStack = findSymlinks(m_root, new HashSet<String>(), new Stack<String>());
 		
 		if (cycleStack.isEmpty())
 			return String.format("Symbolic link created: %s --> %s", SrcPath, DestPath);
 		else
 		{
+			//Remove the newly created symlink as it caused a cycle.
+			srcDir.removeNode(splitPath[0]);
+			
 			StringBuilder sb = new StringBuilder();
 			sb.append("Symlink created a cycle: ");
-			
 			
 			while(cycleStack.isEmpty() == false)
 			{
@@ -257,10 +260,7 @@ public class MiniFs implements FileSystem {
 					sb.append(" -> ");
 			}
 				
-			sb.append("\n Removing the symlink.");
-			
-			srcDir.removeNode(values[0]);
-			
+			sb.append("\nAborting symlink creation.");
 			return sb.toString();
 		}
 	}
@@ -269,6 +269,7 @@ public class MiniFs implements FileSystem {
 	{
 		StringBuilder sb = new StringBuilder();
 		
+		//Scan in every directory for INodes meeting the criteria, add results in the StringBuilder.
 		findInDir(m_root, criteria, sb, false);
 		
 		return sb.toString();
@@ -278,6 +279,7 @@ public class MiniFs implements FileSystem {
 	{
 		StringBuilder sb = new StringBuilder();
 		
+		//Scan in every directory for INodes meeting the criteria, add results in the StringBuilder.
 		findInDir(m_root, criteria, sb, true);
 		
 		return sb.toString();
@@ -321,8 +323,6 @@ public class MiniFs implements FileSystem {
 				INodeSymbolicLink symlink = (INodeSymbolicLink) child;
 				INode target = findNode(symlink.getTarget(), true);
 				
-				//TODO: Remove code from various places about following symlinks that links to symlinks, that's not possible now.
-				
 				//If the symlink now targets a directory we need to search this dir for symlinks.
 				//This is the only place a cycle could occur really, after we've followed a symlink to a directory.
 				if (target instanceof INodeDirectory)
@@ -350,41 +350,38 @@ public class MiniFs implements FileSystem {
 	private void findInDir(INodeDirectory dir, String criteria, StringBuilder sb, boolean useWildcards)
 	{
 		List<INode> children = dir.getChildren();
+		List<INodeDirectory> dirList = new ArrayList<INodeDirectory>();
 		
+		//First see if any of the children matches the criteria.
 		for (INode child : children)
 		{
 			String name = child.getName();
 			
-			if (criteria.contains("*"))
+			if (criteria.contains("*") && useWildcards)
 			{
-				if (useWildcards)
+				if (StringMethods.matchesWildcard(name, criteria))
 				{
-					if (StringMethods.matchesWildcard(name, criteria))
-					{
-						sb.append(child.getPath());
-						sb.append("\n");
-					}
+					sb.append(child.getPath());
+					sb.append("\n");
 				}
 			}
-			else
+			else //If criteria contains * but we shouldn't use wildcards, vice verse or neither.
 			{
 				if (name.equals(criteria))
 				{
 					sb.append(child.getPath());
 					sb.append("\n");
 				}
-			}
+			}	
 			
+			if (child instanceof INodeDirectory)
+				dirList.add((INodeDirectory)child);
 		}
 		
-		for (INode child : children)
-		{
-			if (child instanceof INodeDirectory)
-				findInDir((INodeDirectory) child, criteria, sb, useWildcards);
-		}
+		//Scan any subdirs in this directory for INodes matching the criteria.
+		for (INodeDirectory subDir : dirList)
+			findInDir(subDir, criteria, sb, useWildcards);
 	}
-	
-	
 	
 	/**
 	 * Gets the disk usage of all the directories and files in the specified directory. This method recursively searches all sub-directories of a given directory.
@@ -395,6 +392,7 @@ public class MiniFs implements FileSystem {
 	private int diskUsage(INodeDirectory dir, StringBuilder sb)
 	{
 		List<INode> children = dir.getChildren();
+		List<INodeFile> fileList = new ArrayList<INodeFile>();
 		int dirTotalSize = 0;
 		
 		//Loop through all directories first to get their results first in the print out.
@@ -402,21 +400,18 @@ public class MiniFs implements FileSystem {
 		{
 			//Do diskUsage on the subdirs adding their total size to this dirs total size.
 			if (child instanceof INodeDirectory)
-				dirTotalSize += diskUsage((INodeDirectory) child, sb);	
+				dirTotalSize += diskUsage((INodeDirectory) child, sb);
+			else if (child instanceof INodeFile)
+				fileList.add((INodeFile) child);
 		}
 		
 		//Loop through all files and add them to the print out.
-		for (INode child : children)
+		for (INodeFile file : fileList)
 		{
-			if (child instanceof INodeFile)
-			{
-				INodeFile file = (INodeFile)child;
-				sb.append(String.format("%s %s \n", file.getSize(), child.getPath()));
-				dirTotalSize += file.getSize();
-			}
+			sb.append(String.format("%s %s \n", file.getSize(), file.getPath()));
+			dirTotalSize += file.getSize();
 		}
-		
-		
+				
 		//We've now done all files and directories for this directory. Print total for this dir.
 		sb.append(String.format("%s %s \n", dirTotalSize, dir.getPath()));
 		
@@ -437,7 +432,6 @@ public class MiniFs implements FileSystem {
 		
 		return target;
 	}
-	
 	
 	/**
 	 * Builds a formatted string of the INodes that belong to the specified INodeDirectory.
@@ -470,11 +464,11 @@ public class MiniFs implements FileSystem {
 		//Iterate over all INodes of this directory.
 		for(INode i : sortedINodes)
 		{
-			//Format the accessTime.
+			//Format the accessTime and add it to the front of the line.
 			accessTime = new Date(i.getAccessTime());
 			sb.append(String.format("%s	", formatter.format(accessTime)));
 			
-			//Check if it's a dir.
+			//Check type and write custom stuff.
 			if (i instanceof INodeDirectory)
 			{
 				sb.append("  <DIR>		");
@@ -485,6 +479,7 @@ public class MiniFs implements FileSystem {
 				INodeSymbolicLink symlink = (INodeSymbolicLink) i;
 				INode target = findNode(symlink.getTarget(), false);
 				
+				//Symlinks counts as dirs if they link to a dir, if linking to a file or another symlink they are counted as files.
 				if (target instanceof INodeDirectory)
 				{
 					sb.append("  <SYMLINKD>	");
@@ -502,6 +497,7 @@ public class MiniFs implements FileSystem {
 				files++;
 			}
 			
+			//If it's a symlink we print the target in brackets.
 			if (i instanceof INodeSymbolicLink)
 				sb.append(String.format("%s [%s]\n", i.getName(), ((INodeSymbolicLink) i).getTarget()));
 			else
@@ -544,12 +540,12 @@ public class MiniFs implements FileSystem {
 	 */
 	private INode findNode(String path, boolean traverseSymlinks)
 	{
+		//If we have an empty path then we are referring to the working dir.
+		if (path.isEmpty())
+			return m_workingDir;
+		
 		//Assume working dir for now, anything else discovered will change this to what it should be.
 		INode cur = m_workingDir;
-		
-		//If we have an empty path then we should start form working dir.
-		if (path.isEmpty())
-			return cur;
 		
 		//If path doesn't end with a delimiter, then add one. This way we will have at least one delimiter.
 		if (path.endsWith(g_pathDelimiter) == false)
@@ -599,9 +595,8 @@ public class MiniFs implements FileSystem {
 			//Null result. We didn't find the node in the current directory, return null and let calling functions handle this.
 			if (result == null)
 				return null;
-			
-			
-			cur = result;
+			else
+				cur = result;
 			
 			if (result instanceof INodeSymbolicLink && traverseSymlinks)
 			{
@@ -612,7 +607,7 @@ public class MiniFs implements FileSystem {
 			}
 		}
 		
-		//We've found all the directories in the path, it's time to return.
+		//We've found all the nodes in the path, it's time to return.
 		return cur;
 	}
 }
