@@ -11,8 +11,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Stack;
 
  /**
   * Mini file system that implements some basic file system operations.
@@ -215,6 +215,12 @@ public class MiniFs implements FileSystem {
 		node.getParent().removeNode(node.getName());
 	}
 	
+	/**
+	 * Creates a symbolic link from the SrcPath to the DestPath.
+	 * @param SrcPath The path the the link that is to be created.
+	 * @param DestPath The path to the destination of the symbolic link. 
+	 * @return Returns a the result of the link creation, if it created a cycle it will return the cycle.
+	 */
 	public String ln(String SrcPath, String DestPath)
 	{	
 		//Need to separate the new node name from the rest of the path.
@@ -239,8 +245,8 @@ public class MiniFs implements FileSystem {
 			
 		srcDir.createSymlink(splitPath[0], dest.getPath());
 		
-		//Contains the symlinks and their targets if we have cycles.
-		Stack<String> cycleStack = findSymlinks(m_root, new HashSet<String>(), new Stack<String>());
+		//Check for cycles.
+		LinkedList<String> cycleStack = findCycles(m_root, new HashSet<String>(), new LinkedList<String>());
 		
 		if (cycleStack.isEmpty())
 			return String.format("Symbolic link created: %s --> %s", SrcPath, DestPath);
@@ -265,6 +271,11 @@ public class MiniFs implements FileSystem {
 		}
 	}
 
+	/**
+	 * Searches all INodes and returns a list of the path to those that match the criteria.
+	 * @param criteria The search criteria to match files against.
+	 * @return The paths to all the INodes that meets the search criteria.
+	 */
 	public String find(String criteria)
 	{
 		StringBuilder sb = new StringBuilder();
@@ -275,6 +286,11 @@ public class MiniFs implements FileSystem {
 		return sb.toString();
 	}
 
+	/**
+	 * Searches all INodes and returns a list of the path to those that match the criteria.
+	 * @param criteria The search criteria to match files against, it can contain the wilcard *.
+	 * @return The paths to all the INodes that meets the search criteria.
+	 */
 	public String findc(String criteria)
 	{
 		StringBuilder sb = new StringBuilder();
@@ -285,22 +301,28 @@ public class MiniFs implements FileSystem {
 		return sb.toString();
 	}
 
+	/**
+	 * Check for cycles in our file system and returns the first cycle found if any.
+	 * @return Returns the symbolic links that caused the cycle.
+	 */
 	public String cycles()
 	{
-		Stack<String> cycleStack = findSymlinks(m_root, new HashSet<String>(), new Stack<String>());
+		//Search for cycles.
+		LinkedList<String> cycleList = findCycles(m_root, new HashSet<String>(), new LinkedList<String>());
 				
-		if (cycleStack.isEmpty())
+		if (cycleList.isEmpty())
 			return "No cycle found!";	
 		else
 		{
 			StringBuilder sb = new StringBuilder();
 			sb.append("Cycle detected: ");
 			
-			while(cycleStack.isEmpty() == false)
+			while(cycleList.isEmpty() == false)
 			{
-				sb.append(cycleStack.pop());
+				//The thing stored in our cycleList is the name of each node involved in the cycle.
+				sb.append(cycleList.pop());
 				
-				if (cycleStack.isEmpty() == false)
+				if (cycleList.isEmpty() == false)
 					sb.append(" -> ");
 			}
 				
@@ -308,49 +330,77 @@ public class MiniFs implements FileSystem {
 		}
 	}
 	
-	private Stack<String> findSymlinks(INodeDirectory curDir, HashSet<String> list, Stack<String> cycleStack)
+	/**
+	 * Scans the file system to check for cycles caused by symbolic links.
+	 * @param curDir The directory to start to search for cycles from.
+	 * @param visitedSymlinks The symbolic links we have visited.
+	 * @param symlinkList An empty LinkedList that will hold the symbolic links we've found so far.
+	 * @return A LinkedList containing all the symbolic links that caused the cycle. 
+	 */
+	private LinkedList<String> findCycles(INodeDirectory curDir, HashSet<String> visitedSymlinks, LinkedList<String> symlinkList)
 	{
+		//Seach all children in the directory we are currently in to find other directories or symlinks.
 		for (INode child: curDir.getChildren())
 		{
+			//If we've found a directory we need to check this for symlinks.
 			if (child instanceof INodeDirectory)
 			{
-				cycleStack = findSymlinks((INodeDirectory) child, list, cycleStack);
-				if (cycleStack.isEmpty() == false)
-					return cycleStack;
+				//Set the result of this cycle check to the list, if we've found anything we need to return.
+				symlinkList = findCycles((INodeDirectory) child, visitedSymlinks, symlinkList);
+				if (!symlinkList.isEmpty())
+					return symlinkList;
 			}
 			else if (child instanceof INodeSymbolicLink)
 			{					
 				INodeSymbolicLink symlink = (INodeSymbolicLink) child;
-				INode target = findNode(symlink.getTarget(), true);
+				INode target = findNode(symlink.getTarget(), false);
+				
+				//Add destination to the list.
+				symlinkList.addLast(symlink.getPath());
+				
+				
+				//TODO: Imagine link A pointing to link B and link B is pointing to link A. We then get stuck in an infinite loop. This can happen if you link to a folder, then remove the folder and replace that with a link that links back to the original link.
+				
+				//If the target is a symlink follow it until it's not and add each step to the list.
+				while (target instanceof INodeSymbolicLink)
+				{
+					symlinkList.addLast(target.getPath());
+					target = findNode(((INodeSymbolicLink) target).getTarget(), false);
+				}
+				
 				
 				//If the symlink now targets a directory we need to search this dir for symlinks.
 				//This is the only place a cycle could occur really, after we've followed a symlink to a directory.
 				if (target instanceof INodeDirectory)
-				{
-					cycleStack.push(target.getPath());
-					cycleStack.push(symlink.getPath());
+				{	
+					symlinkList.addLast(target.getPath());
 					
 					//Add this symlink to the list of visited symlinks.
-					if (!list.contains(symlink.getPath()))
-						list.add(symlink.getPath());
-					else
-						return cycleStack;
+					if (!visitedSymlinks.add(symlink.getPath()))
+						return symlinkList;
 					
-					cycleStack = findSymlinks((INodeDirectory) target, list, cycleStack);
-					if (cycleStack.isEmpty() == false)
-						return cycleStack;
+					symlinkList = findCycles((INodeDirectory) target, visitedSymlinks, symlinkList);
+					if (!symlinkList.isEmpty())
+						return symlinkList;
 				}
 			}
 		}
 		
-		//No symlinks found.
-		return new Stack<String>();
+		//No symlinks found in this directory, return a new LinkedList so it will be empty.
+		return new LinkedList<String>();
 	}
-	
+
+	/**
+	 * Searches all directories that's in the specified directory after any INodes that matches the specified critieria.
+	 * @param dir The INodeDirectory to start searching from.
+	 * @param criteria The search criteria to match INodes to.
+	 * @param sb StringBuilder to store the results to.
+	 * @param useWildcards If we should seach with wildcards or not.
+	 */
 	private void findInDir(INodeDirectory dir, String criteria, StringBuilder sb, boolean useWildcards)
 	{
 		List<INode> children = dir.getChildren();
-		List<INodeDirectory> dirList = new ArrayList<INodeDirectory>();
+		List<INodeDirectory> dirList = new ArrayList<INodeDirectory>(); //We save the directories we find in a separate list so it will be faster to iterate through later.
 		
 		//First see if any of the children matches the criteria.
 		for (INode child : children)
@@ -416,21 +466,6 @@ public class MiniFs implements FileSystem {
 		sb.append(String.format("%s %s \n", dirTotalSize, dir.getPath()));
 		
 		return dirTotalSize;
-	}
-	
-	private INode TraverseSymlink(INodeSymbolicLink symlink)
-	{
-		INode target = findNode(symlink.getTarget(), false);
-		
-		//We will break out of this, I promise! We can't point to symlinks in all eternity without having a cycle.
-		while(target instanceof INodeSymbolicLink)
-		{
-			//Follow symlink.
-			symlink = (INodeSymbolicLink) target;
-			target = findNode(symlink.getTarget(), false);
-		}
-		
-		return target;
 	}
 	
 	/**
@@ -601,7 +636,15 @@ public class MiniFs implements FileSystem {
 			if (result instanceof INodeSymbolicLink && traverseSymlinks)
 			{
 				INodeSymbolicLink symlink = (INodeSymbolicLink) result;
-				INode target = TraverseSymlink(symlink);
+				INode target = findNode(symlink.getPath(), false);
+				
+				//We will break out of this, I promise! We can't point to symlinks in all eternity without having a cycle.
+				while(target instanceof INodeSymbolicLink)
+				{
+					//Follow symlink.
+					symlink = (INodeSymbolicLink) target;
+					target = findNode(symlink.getTarget(), false);
+				}
 				
 				cur = target;
 			}

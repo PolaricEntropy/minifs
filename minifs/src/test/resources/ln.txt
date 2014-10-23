@@ -1,8 +1,12 @@
 mkdir home/bjorn
 mkdir home/olof
-touch home/olof/123.txt
+
+//touch home/olof/123.txt
+
 ln home/olof/link home/bjorn
 ln home/gabbe home/olof/link
-cd home
-ln bjorn/test olof/123.txt
+ln home/bjorn/link home/gabbe
+
+//ln bjorn/test olof/123.txt
+
 cycles
