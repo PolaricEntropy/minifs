@@ -355,17 +355,27 @@ public class MiniFs implements FileSystem {
 				INodeSymbolicLink symlink = (INodeSymbolicLink) child;
 				INode target = findNode(symlink.getTarget(), false);
 				
-				//Add destination to the list.
+				//Add the source to the list.
 				symlinkList.addLast(symlink.getPath());
 				
 				
-				//TODO: Imagine link A pointing to link B and link B is pointing to link A. We then get stuck in an infinite loop. This can happen if you link to a folder, then remove the folder and replace that with a link that links back to the original link.
+				int SymlinksFollowed = 0;
 				
 				//If the target is a symlink follow it until it's not and add each step to the list.
 				while (target instanceof INodeSymbolicLink)
 				{
+					//Then add any intermediate symlinks.
 					symlinkList.addLast(target.getPath());
 					target = findNode(((INodeSymbolicLink) target).getTarget(), false);
+					SymlinksFollowed++;
+				
+					//If we've followed symlinks in this loop a thousand times we are probably in a cycle and need to break out.
+					if (SymlinksFollowed == 1000)
+					{
+						for (int i = 0; i < 998; i++)
+							symlinkList.pop(); //We need to remove all the links we added during our cycle.
+						return symlinkList;
+					}
 				}
 				
 				
@@ -373,6 +383,7 @@ public class MiniFs implements FileSystem {
 				//This is the only place a cycle could occur really, after we've followed a symlink to a directory.
 				if (target instanceof INodeDirectory)
 				{	
+					//Then add the destination.
 					symlinkList.addLast(target.getPath());
 					
 					//Add this symlink to the list of visited symlinks.
