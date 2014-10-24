@@ -22,7 +22,7 @@ public class MiniFs implements FileSystem {
 	
 	private final INodeDirectory m_root;
 	private INodeDirectory m_workingDir; //We want to support state in form of a working directory.
-	private String m_version = "1.1";
+	private String m_version = "2.0";
 	
 	/**
 	 * Constructor. Creates a new MiniFs object with a root and home directory and write protects the root node.
@@ -237,13 +237,7 @@ public class MiniFs implements FileSystem {
 			throw new IllegalArgumentException(String.format("The directory '%s' does not exist.", SrcPath));
 		}
 		
-		//We won't traverse symlinks while finding the destination node, that way we can link to a link.
-		INode dest = findNode(DestPath, false);
-		
-		if (dest == null)
-			throw new IllegalArgumentException(String.format("The path '%s' does not exist.", DestPath));
-			
-		srcDir.createSymlink(splitPath[0], dest.getPath());
+		srcDir.createSymlink(splitPath[0], DestPath);
 		
 		//Check for cycles.
 		LinkedList<String> cycleStack = findCycles(m_root, new HashSet<String>(), new LinkedList<String>());
@@ -525,13 +519,13 @@ public class MiniFs implements FileSystem {
 				INodeSymbolicLink symlink = (INodeSymbolicLink) i;
 				INode target = findNode(symlink.getTarget(), false);
 				
-				//Symlinks counts as dirs if they link to a dir, if linking to a file or another symlink they are counted as files.
+				//Symlinks counts as dirs if they link to a dir, else it counts as a file.
 				if (target instanceof INodeDirectory)
 				{
 					sb.append("  <SYMLINKD>	");
 					directories++;
 				}
-				else if (target instanceof INodeFile || target instanceof INodeSymbolicLink)
+				else
 				{
 					sb.append("  <SYMLINK>	");
 					files++;

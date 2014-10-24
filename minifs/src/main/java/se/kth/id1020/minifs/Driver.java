@@ -11,9 +11,6 @@ import edu.princeton.cs.introcs.StdOut;
 
 import java.io.File;
 
-/**
- *
- */
 public class Driver {
 
 	static String NEW_LINE = System.getProperty("line.separator");

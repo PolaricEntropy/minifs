@@ -8,6 +8,10 @@ package se.kth.id1020.minifs;
 
 import java.util.Stack;
 
+/**
+ * INodeFile represents a file in the file system.
+ * @author Björn Ehrby
+ */
 public class INodeFileMemoryEfficient extends INode {
 
 	//Stack is more memory efficient then ArrayList as it doesn't have a load factor, it's 100% full all of the time.

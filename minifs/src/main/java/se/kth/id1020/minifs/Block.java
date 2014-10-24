@@ -7,7 +7,8 @@
 package se.kth.id1020.minifs;
 
 /**
- *
+ * Block of data for an INodeFile.
+ * @author Björn Ehrby
  */
 public class Block {
 

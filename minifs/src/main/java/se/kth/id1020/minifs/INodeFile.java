@@ -8,6 +8,10 @@ package se.kth.id1020.minifs;
 
 import java.util.ArrayList;
 
+/**
+ * INodeFile represents a file in the file system.
+ * @author Björn Ehrby
+ */
 public class INodeFile extends INode {
 
 	//ArrayList takes constant time for add instructions. 

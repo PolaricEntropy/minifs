@@ -6,7 +6,8 @@
 package se.kth.id1020.minifs;
 
 /**
- *
+ * Interface that FileSystems must implement.
+ * @author Björn Ehrby
  */
 public interface FileSystem {
 

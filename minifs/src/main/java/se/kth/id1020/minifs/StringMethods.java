@@ -2,12 +2,19 @@ package se.kth.id1020.minifs;
 
 public class StringMethods {
 
+	/**
+	 * Checks if an input string matches a criteria string that contains wildcards.
+	 * @param input The input to check.
+	 * @param criteria The search string to match.
+	 * @return Returns true if the input string matches the criteria, else false. 
+	 */
 	public static boolean matchesWildcard (String input, String criteria)
 	{
 		//Contains just the wildcard.
 		if (criteria.length() == 1)
 			return true;
 		
+		//Split the criteria into individual elements delimited by stars.
 		String[] searchStrings = criteria.split("\\*");
 		
 		for (int i = 0; i < searchStrings.length; i++)
@@ -26,7 +33,7 @@ public class StringMethods {
 			}
 			else if (i == searchStrings.length-1) //If last element.
 			{
-				//If our criteria ends with star we don't need to end the 
+				//If our criteria ends with star the input can end with whatever.
 				if (!criteria.endsWith("*"))
 				{
 					if(input.endsWith(searchStrings[i])) //Criteria is for example stu*nt, check if we end with nt.

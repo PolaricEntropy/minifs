@@ -6,7 +6,7 @@
 package se.kth.id1020.minifs;
 
 /**
- * Base class for INodes. 
+ * INode is an abstract base class for all INode objects in our file system. 
  * @author Björn Ehrby
  *
  */
