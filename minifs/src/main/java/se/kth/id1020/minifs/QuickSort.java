@@ -20,19 +20,18 @@ public class QuickSort <T> {
         int i = low + 1;
         int j = high;
         
-        while(i <= j) {
-            if(comp.compare(input.get(i), input.get(low)) <= 0) { 
+        while(i <= j)
+        {
+            if(comp.compare(input.get(i), input.get(low)) <= 0)
                 i++; 
-            }
-            else if(comp.compare(input.get(j), input.get(low)) > 0) { 
+            else if(comp.compare(input.get(j), input.get(low)) > 0) 
                 j--;
-            }
-            else if(j < i) {
+            else if(j < i)
                 break;
-            }
             else
                 exchange(input, i, j);
         }
+        
         exchange(input, low, j);
         return j;
     }

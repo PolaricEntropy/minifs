@@ -240,7 +240,7 @@ public class MiniFs implements FileSystem {
 		srcDir.createSymlink(splitPath[0], DestPath);
 		
 		//Check for cycles.
-		LinkedList<String> cycleStack = findCycles(m_root, new HashSet<String>(), new LinkedList<String>());
+		LinkedList<String> cycleStack = findCycles(srcDir, new HashSet<String>(), new LinkedList<String>());
 		
 		if (cycleStack.isEmpty())
 			return String.format("Symbolic link created: %s --> %s", SrcPath, DestPath);
